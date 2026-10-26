@@ -1129,7 +1129,7 @@ impl App {
                 .size(12)
                 .width(Length::Fill),
                 text(format!(
-                    "~{}:{} remaining",
+                    "~{}:{}s remaining",
                     n.integer(i128::from(remaining.as_secs() / 60)),
                     n.integer(i128::from(remaining.as_secs() % 60))
                 ))
