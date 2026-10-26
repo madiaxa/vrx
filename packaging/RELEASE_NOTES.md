@@ -1,19 +1,13 @@
-VRX v0.0.1 is the first native RSVP reader subdivision.
+# VRX 0.1.0
 
-The personalization revision retains v0.0.1 and adds the supplied logo, configurable shortcuts, radix-aware numeric controls with balanced ternary, direct numeric editing, draggable positioning, optional focal highlighting, centered focus mode, independent GUI type scaling and separate punctuation pauses.
+VRX is an early native RSVP reader with a reusable Rust library and CLI/JSON agent API. This working version uses standard decimal semantic versioning from Cargo; release tags use the v prefix.
 
-It includes indexed Unicode text and Markdown, shaped ORP anchoring, monotonic playback, adaptive pauses, keyboard navigation and configurable jumps/pace steps, themes and typography, saved file progress, a JSON-lines agent API, ASS/SRT export, and optional FFmpeg MP4 rendering.
+- Radix/base and numeral-alphabet controls are grouped under a collapsed Radix notation dropdown in Personalize. Reading values still use the selected notation.
+- Adaptive timing and Keybindings now have matching collapsed sections. Their headers and panels follow the theme accent, with a separate customizable Dropdown color override. Hidden invalid fields reopen their section when saving; collapsing shortcuts cancels recording.
+- Personalize is 25% wider in windowed mode; fullscreen retains its previous widths. Native window-mode changes are reflected in the layout.
+- About VRX centers its remaining text and controls and shows brief license information instead of the full license text. Complete licenses remain bundled.
+- README wording has been audited against the implementation, including build prerequisites, platform-verification limits, download availability and progress persistence.
 
-Assets target Apple Silicon macOS, Linux x86_64, Windows x86_64, and FreeBSD 15.0 amd64. Archives include usage instructions, limitations, architecture, measurement evidence, and dependency notices. macOS builds use local ad-hoc signing, not Apple notarization; FFmpeg is not bundled. Consult BUILD.json for target and source commit.
+Retained features include Unicode text/Markdown input, in-window editing, shaped focal anchoring, configurable timing, countdowns, opacity and guide styling, custom alphabets, previews, confirmed preference reset/discard, native macOS About, saved file positions, timed subtitles and optional external-FFmpeg MP4 export.
 
-Platform CI/build success and manual desktop verification are different. Review the current Actions run and perform the release checklist on each intended desktop before publishing. The checked-in measurements describe the development macOS system, not every downloaded binary.
-
-Final changes retain v0.0.1: slash-preserving token splits, a simplified keymap, a green-by-default independent export canvas, toolbar text editing with in-editor Paste, and direct radix input. Contributor guidance is consolidated in docs/CONTRIBUTING.md; platform/GitHub build instructions are consolidated in docs/RELEASE.md. These final changes were compiled without running tests at the requester's direction.
-
-The latest update preserves the edited GUI, implements ClearText in the editor, makes fractional sliders step in the selected radix, and shortens number formatting without losing stored precision. Focal guides now support shape/color/size/gap customization and scale with RSVP type and word fitting. Three focused regression tests passed; no full-suite or native smoke run was performed for this update.
-
-VRX's original code is released under the Unlicense. Dependency and font licenses remain unchanged.
-
-Corrected the Ubuntu-reported shaping-test assumption for a character inside an ffi ligature. Complete-cluster geometry and the existing missing-span fallback are both checked. The single affected test passed on the development Mac; Ubuntu execution remains to be confirmed.
-
-UI revision, still v0.0.1: fixed focus anchoring; configurable padded countdowns and digit alphabets; Axa Mono naming; export preview/background popup; confirmed defaults/discard with warning color; color swatches; About via version hover/click and native macOS menu; single-word Cmd/Ctrl arrows; side-letter opacity; 40-percent and left-middle ORP selection; a miniature reading preview; em-dash token breaks; and an HTML README. Additional fixes cover empty/finished countdowns, stale export dialogs, unsaved preference persistence and faded ligature fallback. Export and shaping reuse invariant computations. See docs/RELEASE.md for the precise verification boundary.
+VRX uses the Unlicense; dependencies and the OFL Axa Mono font retain their own licenses. macOS archives use local ad-hoc signing rather than public notarization. See docs/RELEASE.md for build instructions and the distinction between local verification, cross-target checks and native platform runs.

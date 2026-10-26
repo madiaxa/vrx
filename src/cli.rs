@@ -14,7 +14,11 @@ use vrx::{
     text::{Document, orp::Strategy},
 };
 
-const HELP: &str = "VRX v0.0.1 — native RSVP reader\n\n  vrx [gui] [FILE]                    Open the native reader\n  vrx inspect FILE                   Document metadata as JSON\n  vrx export FILE OUTPUT [WPM] [RGB]  Export .ass, .srt or .mp4\n  vrx diagnose [SAMPLES]              Absolute-deadline OS timer measurements\n  vrx api [FILE]                     JSON-lines control protocol over stdin/stdout\n  vrx --version                      Human release label (dozenal)\n\nUse VRX_CONFIG_DIR to isolate settings; VRX_FFMPEG selects an FFmpeg executable.\nSee docs/API.md for the library and JSON protocol.\n";
+const HELP: &str = concat!(
+    "VRX v",
+    env!("CARGO_PKG_VERSION"),
+    " — native RSVP reader\n\n  vrx [gui] [FILE]                    Open the native reader\n  vrx inspect FILE                   Document metadata as JSON\n  vrx export FILE OUTPUT [WPM] [RGB]  Export .ass, .srt or .mp4\n  vrx diagnose [SAMPLES]              Absolute-deadline OS timer measurements\n  vrx api [FILE]                     JSON-lines control protocol over stdin/stdout\n  vrx --version                      Package version\n\nUse VRX_CONFIG_DIR to isolate settings; VRX_FFMPEG selects an FFmpeg executable.\nSee docs/API.md for the library and JSON protocol.\n"
+);
 pub fn run() -> Result<()> {
     let mut args = std::env::args_os().skip(1);
     let first = args.next();

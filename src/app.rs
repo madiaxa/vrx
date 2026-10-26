@@ -25,7 +25,7 @@ use vrx::{
     text::Document,
 };
 
-const DEMO: &str = "Welcome to VRX, an extremely capable RSVP reader written in blazingly fast Rust.\nThe goal of VRX is to provide a swift and smooth reading experience for any amount of text, from paragraphs to pages (and beyond). It also allows the same customization options you'd expect from AxaSuite: radix choice, color options, and every keybinding you could possibly need.\nUse your left/right arrow keys to move forwards/backwards in the text. Change your pace with the up and down keys; alternatively, control it at the bottom right corner of the program.\nYou may be wondering, \"Why is this program called VRX?\" It's an acronym that stands for \"Visual Reader X\". Unfortunately, the X doesn't stand for anything in particular—at least, for now.\nThis sample text contains every character with adaptive timing. Now that you have gotten a feel for VRX, it's time to read rapidly! Read responsibly, too.";
+const DEMO: &str = "Welcome to VRX, an extremely capable RSVP reader written in blazingly fast Rust.\n\nThe goal of VRX is to provide a swift and smooth reading experience for any amount of text, from paragraphs to pages (and beyond). It also allows the same customization options you'd expect from AxaSuite: radix choice, color options, and every keybinding you could possibly need.\nUse your left/right arrow keys to move forwards/backwards in the text. Change your pace with the up and down keys; alternatively, control it at the bottom right corner of the program.\n\nYou may be wondering, \"Why is this program called VRX?\" It's an acronym that stands for \"Visual Reader X\". Unfortunately, the X doesn't stand for anything in particular—at least, for now.\nThis sample text contains every character with adaptive timing. Now that you have gotten a feel for VRX, it's time to read rapidly! Read responsibly, too.";
 
 pub struct App {
     pub engine: Playback,
@@ -46,6 +46,7 @@ pub struct App {
     editor_generation: u64,
     reading: bool,
     fullscreen: bool,
+    mode_generation: u64,
     apply_window: WindowAction,
     notice: Option<String>,
     loading: Option<(u64, Arc<AtomicBool>)>,
@@ -92,7 +93,7 @@ enum Input {
 enum WindowAction {
     #[default]
     None,
-    Fullscreen,
+    Fullscreen(bool),
 }
 
 impl App {
@@ -175,6 +176,7 @@ impl App {
             native_menu: None,
             reading: false,
             fullscreen: false,
+            mode_generation: 0,
             apply_window: WindowAction::None,
             notice,
             loading: None,
@@ -437,6 +439,18 @@ impl App {
                     self.editor_generation = self.editor_generation.wrapping_add(1);
                     editor.generation = self.editor_generation;
                     editor.content = Some(iced::widget::text_editor::Content::new());
+                    return iced::advanced::widget::operate(
+                        iced::advanced::widget::operation::focusable::focus(
+                            iced::advanced::widget::Id::new("reading-text-editor"),
+                        ),
+                    );
+                }
+            }
+            Message::AddSampleText => {
+                if let Some(editor) = &mut self.editor {
+                    self.editor_generation = self.editor_generation.wrapping_add(1);
+                    editor.generation = self.editor_generation;
+                    editor.content = Some(iced::widget::text_editor::Content::with_text(DEMO));
                     return iced::advanced::widget::operate(
                         iced::advanced::widget::operation::focusable::focus(
                             iced::advanced::widget::Id::new("reading-text-editor"),
@@ -752,8 +766,34 @@ impl App {
             }
             Message::ResetBindings => {
                 self.saved.config.keys = vrx::keybinds::Keymap::default();
-                self.fields = ui::settings::Fields::new(&self.saved.config);
+                self.fields.bindings = Action::ALL
+                    .into_iter()
+                    .map(|action| (action, self.saved.config.keys.label(action).to_owned()))
+                    .collect();
+                self.fields.notice = None;
                 self.listening = None;
+            }
+            Message::ToggleAdaptive => {
+                self.fields.adaptive_expanded = !self.fields.adaptive_expanded
+            }
+            Message::ToggleBindings => {
+                self.fields.bindings_expanded = !self.fields.bindings_expanded;
+                if !self.fields.bindings_expanded && self.listening.take().is_some() {
+                    self.fields.notice = None;
+                }
+            }
+            Message::ToggleNotation => {
+                self.fields.notation_expanded = !self.fields.notation_expanded
+            }
+            Message::RefreshWindowMode(id) => {
+                self.mode_generation = self.mode_generation.wrapping_add(1);
+                let generation = self.mode_generation;
+                return window::mode(id).map(move |mode| Message::WindowMode(generation, mode));
+            }
+            Message::WindowMode(generation, mode) => {
+                if generation == self.mode_generation {
+                    self.fullscreen = mode == window::Mode::Fullscreen;
+                }
             }
             Message::Settings => {
                 self.popup = None;
@@ -768,6 +808,12 @@ impl App {
                     .and_then(|_| vrx::countdown::validate(&self.saved.config.countdown_long));
                     if let Err(error) = format_validation {
                         self.fields.notice = Some(error);
+                        return Task::none();
+                    }
+                    if !self.saved.config.dropdown_color.is_empty()
+                        && !vrx::config::valid_rgb(&self.saved.config.dropdown_color)
+                    {
+                        self.fields.notice=Some("Dropdown color needs six RGB hex digits, or leave it empty for the theme accent".into());
                         return Task::none();
                     }
                     for color in [
@@ -804,6 +850,7 @@ impl App {
                         let value = self.fields.binding(action).to_owned();
                         if let Err(error) = self.saved.config.keys.assign(action, &value) {
                             self.fields.notice = Some(error);
+                            self.fields.bindings_expanded = true;
                             return Task::none();
                         }
                     }
@@ -832,14 +879,15 @@ impl App {
             }
             Message::Fullscreen => {
                 self.fullscreen = !self.fullscreen;
-                self.apply_window = WindowAction::Fullscreen;
+                self.mode_generation = self.mode_generation.wrapping_add(1);
+                self.apply_window = WindowAction::Fullscreen(self.fullscreen);
                 return window::latest().map(Message::WindowAction);
             }
             Message::WindowAction(Some(id)) => match std::mem::take(&mut self.apply_window) {
-                WindowAction::Fullscreen => {
+                WindowAction::Fullscreen(fullscreen) => {
                     return window::set_mode(
                         id,
-                        if self.fullscreen {
+                        if fullscreen {
                             window::Mode::Fullscreen
                         } else {
                             window::Mode::Windowed
@@ -997,7 +1045,8 @@ impl App {
             Action::About => Message::About,
             Action::ExitFullscreen => {
                 self.fullscreen = false;
-                self.apply_window = WindowAction::Fullscreen;
+                self.mode_generation = self.mode_generation.wrapping_add(1);
+                self.apply_window = WindowAction::Fullscreen(false);
                 return window::latest().map(Message::WindowAction);
             }
         };
@@ -1018,6 +1067,7 @@ impl App {
         .and_then(|_| vrx::numerals::validate_alphabet(&self.fields.ternary, 3, 3));
         if let Err(error) = validation {
             self.fields.notice = Some(error);
+            self.fields.notation_expanded = true;
             return false;
         }
         let changed = self.saved.config.numeral_alphabet != self.fields.alphabet
@@ -1081,6 +1131,7 @@ impl App {
             }
             _ => {
                 if explicit {
+                    self.fields.notation_expanded = true;
                     self.fields.notice = Some("Enter a decimal radix from 2 through 60, with at least that many numeral symbols".into());
                 }
                 false
@@ -1117,6 +1168,20 @@ impl App {
             Err(error) => {
                 if explicit {
                     self.fields.notice = Some(error);
+                    match number {
+                        Number::Jump | Number::Step => self.fields.bindings_expanded = true,
+                        Number::Long
+                        | Number::Comma
+                        | Number::Colon
+                        | Number::Semicolon
+                        | Number::Sentence
+                        | Number::Paragraph
+                        | Number::Quote
+                        | Number::Parenthesis
+                        | Number::Dash
+                        | Number::Section => self.fields.adaptive_expanded = true,
+                        _ => {}
+                    }
                 }
                 false
             }
@@ -1174,6 +1239,7 @@ impl App {
             Setting::Background(v) => config.background = v,
             Setting::ExportBackground(v) => config.export_background = v,
             Setting::Accent(v) => config.accent = v,
+            Setting::DropdownColor(v) => config.dropdown_color = v,
             Setting::Warning(v) => config.warning = v,
             Setting::CountdownShort(v) => config.countdown_short = v,
             Setting::CountdownLong(v) => config.countdown_long = v,
@@ -1189,6 +1255,9 @@ impl App {
     pub fn subscription(&self) -> Subscription<Message> {
         let events = event::listen_with(|event, status, id| match event {
             Event::Window(window::Event::CloseRequested) => Some(Message::Close(id)),
+            Event::Window(window::Event::Resized(_) | window::Event::Focused) => {
+                Some(Message::RefreshWindowMode(id))
+            }
             Event::Window(window::Event::FileDropped(path)) => Some(Message::Load(path)),
             Event::Keyboard(keyboard::Event::KeyPressed {
                 key,
@@ -1273,6 +1342,7 @@ impl App {
                 row![
                     button("Paste").on_press(Message::PasteEdit),
                     button("Clear text").on_press(Message::ClearText),
+                    button("Use sample").on_press(Message::AddSampleText),
                     container(button("Apply changes").on_press(Message::ApplyEdit))
                         .width(Length::Fill)
                         .align_x(iced::alignment::Horizontal::Right),
@@ -1318,17 +1388,18 @@ impl App {
         if hidden {
             return reader.into();
         }
-        if self.settings && width < 1120.0 {
+        let (panel_width, panel_max_width) = ui::settings::panel_widths(self.fullscreen);
+        if self.settings && width < panel_width + 700.0 {
             return container(
                 container(ui::settings::view(c, &self.fields, self.listening))
                     .width(Length::Fill)
-                    .max_width(520),
+                    .max_width(panel_max_width),
             )
             .center_x(Length::Fill)
             .height(Length::Fill)
             .into();
         }
-        let compact = width - if self.settings { 420.0 } else { 0.0 } < 900.0;
+        let compact = width - if self.settings { panel_width } else { 0.0 } < 900.0;
         let (_, _, accent) = ui::theme::palette(c);
         let brand = row![
             text("VRX").size(24).color(accent),
@@ -1528,7 +1599,7 @@ impl App {
         if self.settings {
             row![
                 main,
-                container(ui::settings::view(c, &self.fields, self.listening)).width(420)
+                container(ui::settings::view(c, &self.fields, self.listening)).width(panel_width)
             ]
             .into()
         } else {
@@ -2145,6 +2216,74 @@ mod tests {
             let _ = app.update(Message::Key(Key::Named(Named::ArrowRight), modifier));
             assert_eq!(app.engine.index(), 12);
         }
+        Ok(())
+    }
+    #[test]
+    fn personalize_notation_and_fullscreen_width_policy() -> vrx::Result<()> {
+        let mut app = app()?;
+        let _ = app.update(Message::Settings);
+        assert!(!app.fields.notation_expanded);
+        assert_eq!(ui::settings::panel_widths(app.fullscreen), (525.0, 650.0));
+        let _ = app.update(Message::ToggleNotation);
+        let _ = app.update(Message::RadixInput("12".into()));
+        assert!(app.fields.notation_expanded);
+        assert_eq!(app.saved.config.radix, 12);
+        let old_generation = app.mode_generation;
+        let _ = app.update(Message::Fullscreen);
+        let _ = app.update(Message::WindowMode(old_generation, window::Mode::Windowed));
+        assert!(app.fullscreen);
+        assert!(matches!(app.apply_window, WindowAction::Fullscreen(true)));
+        assert_eq!(ui::settings::panel_widths(app.fullscreen), (420.0, 520.0));
+        let fullscreen_generation = app.mode_generation;
+        let _ = app.action(Action::ExitFullscreen);
+        let _ = app.update(Message::WindowMode(
+            fullscreen_generation,
+            window::Mode::Fullscreen,
+        ));
+        assert!(!app.fullscreen);
+        assert_eq!(ui::settings::panel_widths(app.fullscreen), (525.0, 650.0));
+        let _ = app.update(Message::Settings);
+        assert!(!app.settings);
+        let _ = app.update(Message::Settings);
+        assert!(!app.fields.notation_expanded);
+        Ok(())
+    }
+    #[test]
+    fn personalize_sections_preserve_drafts_and_custom_color() -> vrx::Result<()> {
+        let mut app = app()?;
+        let _ = app.update(Message::Settings);
+        assert!(!app.fields.adaptive_expanded && !app.fields.bindings_expanded);
+        let _ = app.update(Message::ToggleAdaptive);
+        let _ = app.update(Message::NumberInput(Number::Long, "invalid".into()));
+        let _ = app.update(Message::ToggleAdaptive);
+        let _ = app.update(Message::Settings);
+        assert!(app.settings && app.fields.adaptive_expanded);
+        assert_eq!(app.fields.get(Number::Long), "invalid");
+        let _ = app.update(Message::NumberInput(Number::Long, "1.5".into()));
+        let _ = app.update(Message::ToggleBindings);
+        let _ = app.update(Message::RecordBinding(Action::Toggle));
+        let _ = app.update(Message::ToggleBindings);
+        assert!(app.listening.is_none());
+        let _ = app.update(Message::ToggleBindings);
+        let _ = app.update(Message::ResetBindings);
+        assert!(app.fields.bindings_expanded);
+        assert_eq!(app.fields.get(Number::Long), "1.5");
+        let _ = app.update(Message::Set(Setting::DropdownColor("67AB89".into())));
+        assert_eq!(
+            ui::theme::dropdown_accent(&app.saved.config),
+            ui::theme::hex("67AB89")
+        );
+        let encoded = serde_json::to_string(&app.saved.config).map_err(|e| e.to_string())?;
+        let decoded: vrx::config::Config =
+            serde_json::from_str(&encoded).map_err(|e| e.to_string())?;
+        assert_eq!(decoded.dropdown_color, "67AB89");
+        let _ = app.update(Message::Settings);
+        assert!(!app.settings);
+        let _ = app.update(Message::Set(Setting::DropdownColor(String::new())));
+        assert_eq!(
+            ui::theme::dropdown_accent(&app.saved.config),
+            ui::theme::palette(&app.saved.config).2
+        );
         Ok(())
     }
 }

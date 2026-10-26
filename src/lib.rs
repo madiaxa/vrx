@@ -12,5 +12,5 @@ pub mod text;
 pub mod version;
 
 pub const TAGLINE: &str = "Read Rapidly";
-pub const VERSION: &str = "v0.0.1";
+pub const VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
 pub type Result<T> = std::result::Result<T, String>;

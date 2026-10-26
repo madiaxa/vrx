@@ -2,7 +2,7 @@
 
 ## Development
 
-Build commands for every platform and validation commands live here. The latest v0.0.1 ClearText/slider/focal update ran three focused regression tests and a macOS release build. The previous slash/export revision was compiled without tests, at the requester's direction. Earlier full-suite and platform results remain historical evidence, rather than a full validation of the latest changes.
+Build commands for every platform and validation commands live here. An earlier v0.0.1 ClearText/slider/focal update ran three focused regression tests and a macOS release build. The previous slash/export revision was compiled without tests, at the requester's direction. Earlier full-suite and platform results remain historical evidence, rather than a full validation of the latest changes.
 
 Install stable Rust 1.99+ with rustfmt and Clippy. The checked-in lockfile fixes the verified dependency resolution. No external runtime is required for reading. FFmpeg is optional for MP4 export.
 
@@ -64,9 +64,11 @@ PowerShell: `$env:ICED_BACKEND='tiny-skia'`. Without a forced backend, Iced atte
 
 ## Version discipline
 
-The human label is `v0.y.z`, with y/z in dozenal using `↊` and `↋`. This release is `v0.0.1`. Cargo and platform package metadata require numeric version fields; keep machine metadata valid and publish the dozenal human label in release notes and `vrx --version`. Update `VERSION`, Cargo metadata, lockfile package entry, bundle metadata, README and measured-result version together. Do not silently relabel untested binaries.
+The working version is **0.1.0**. Use standard decimal semantic versions, with `vMAJOR.MINOR.PATCH` release tags such as `v0.1.0` or `v0.1.10`. GUI radix settings do not affect package versions, tags, filenames or CLI/API version responses.
 
-The GitHub Actions workflows run formatting, Clippy and tests on macOS/Linux/Windows and a native FreeBSD VM. Its presence is not evidence that CI has run. Before a public release, archive actual matrix results, native manual results, performance measurements, license notices, and signing/notarization evidence.
+`Cargo.toml` is the version source. The application's `VERSION` and CLI help derive it at compile time; the packager reads it directly. Keep Cargo.lock, bundle metadata, README and release notes current. Never relabel an older binary as a new version, and do not rewrite the version on historical measurements.
+
+The GitHub Actions workflows run formatting, Clippy and tests on macOS/Linux/Windows and a native FreeBSD VM. Their presence is not evidence of execution. Before public release, review actual matrix/desktop results, performance evidence, notices and signing/notarization status.
 
 ## Unix desktop launcher
 
@@ -118,7 +120,7 @@ MP4 remains optional. Install an FFmpeg package built with libass and libx264 an
 
 `.github/workflows/freebsd.yml` runs a real FreeBSD 15.0 amd64 VM on an Ubuntu host using [vmactions/freebsd-vm](https://github.com/vmactions/freebsd-vm). Rust stable, fonts and native libraries are installed inside the VM. `packaging/freebsd-ci.sh` runs formatting, native tests, Clippy, release linking, and `vrx --version`. Build intermediates stay in the VM's `/tmp` so the action copies back only source/artifacts rather than the entire target tree.
 
-Normal CI calls this workflow. Release CI calls it with `package: true`, creating a `vrx-v0.0.1-x86_64-unknown-freebsd.tar.gz` archive and SHA-256 file. Archive contents include the native executable, documentation, BUILD.json and dependency license notices. A desktop session is absent in this VM job: native tests and linking do not certify visible rendering or live clipboard/portal behavior. Follow [the desktop checklist](PERFORMANCE.md) on intended hardware.
+Normal CI calls this workflow. Release CI calls it with `package: true`, creating a `vrx-v0.1.0-x86_64-unknown-freebsd.tar.gz` archive and SHA-256 file. Archive contents include the native executable, documentation, BUILD.json and dependency license notices. A desktop session is absent in this VM job: native tests and linking do not certify visible rendering or live clipboard/portal behavior. Follow [the desktop checklist](PERFORMANCE.md) on intended hardware.
 
 For a local release archive after compiling:
 
@@ -138,7 +140,7 @@ Three workflows are included:
 |---|---|---|
 | `ci.yml` | Push / pull request | Formatting, tests, Clippy and builds on macOS/Linux/Windows; native FreeBSD VM checks |
 | `freebsd.yml` | Called by CI/release, or manually | FreeBSD 15.0 amd64 tests/linking, optionally a release archive |
-| `release.yml` | Manual run or pushed `v0.*.*` tag | Native archives for macOS arm64, Linux x86_64, Windows x86_64 and FreeBSD amd64; tag runs also create a draft prerelease |
+| `release.yml` | Manual run or pushed decimal `vMAJOR.MINOR.PATCH` tag | Native archives for macOS arm64, Linux x86_64, Windows x86_64 and FreeBSD amd64; tag runs also create a draft prerelease |
 
 Workflows were validated locally with actionlint. The macOS packager was executed locally. A full remote Actions run requires your GitHub repository; none has been published or run automatically during this work. The platform support evidence in [PERFORMANCE.md](PERFORMANCE.md) remains distinct from future CI results.
 
@@ -151,7 +153,7 @@ For a new local Git repository, these commands are an example; replace the remot
 ```sh
 git init -b main
 git add .
-git commit -m "VRX v0.0.1"
+git commit -m "VRX v0.1.0"
 git remote add origin https://github.com/YOUR_ACCOUNT/vrx.git
 git push -u origin main
 ```
@@ -169,24 +171,24 @@ A manual branch run creates build artifacts only. It never creates a tag or a Gi
 
 The FreeBSD workflow also has a manual **Build a release archive** checkbox. Its unselected default runs validation only. The VM requires time to boot, install Rust and compile WGPU; its timeout is 60 minutes.
 
-### Create v0.0.1 release assets
+### Create v0.1.0 release assets
 
 Once CI passes and the source version is correct:
 
 ```sh
-git tag -a v0.0.1 -m "VRX v0.0.1"
-git push origin v0.0.1
+git tag -a v0.1.0 -m "VRX v0.1.0"
+git push origin v0.1.0
 ```
 
-The tag must exactly match `src/lib.rs`'s human `VERSION`. The packager checks that match and rejects incorrect binary architecture/format. A tag run builds every platform and uploads archives/checksums. Only when all native and FreeBSD jobs succeed does it create a **draft prerelease**, with a tagged source archive and `packaging/RELEASE_NOTES.md`.
+The tag must exactly match the Cargo.toml package version with a `v` prefix. The packager checks that match and rejects incorrect binary architecture/format. A tag run builds every platform and uploads archives/checksums. Only when all native and FreeBSD jobs succeed does it create a **draft prerelease**, with a tagged source archive and `packaging/RELEASE_NOTES.md`.
 
 Review the draft under **Releases**, inspect Actions logs and BUILD.json target/commit metadata, and test each intended desktop before using GitHub's **Publish release** control. `gh release create --verify-tag --draft --prerelease` provides the draft behavior; see the [GitHub CLI reference](https://cli.github.com/manual/gh_release_create). No public macOS notarization or Windows signing is performed by this workflow. The macOS app gets local ad-hoc signing for executable/resource integrity only. Add your own signing credentials and platform-specific steps before distributing under a verified publisher identity.
 
-If a build fails, fix the source and rerun validation. Do not retag an already published release onto changed content. For a failure before publication, follow your repository's tag policy; for a published release, issue a new subdivision. If an already-created draft makes `gh release create` fail on a rerun, update its assets manually or remove only that unpublished draft before rerunning. The workflow intentionally does not silently overwrite published release assets.
+If a build fails, fix the source and rerun validation. Do not retag an already published release onto changed content. For a failure before publication, follow your repository's tag policy; for a published release, issue a new release. If an already-created draft makes `gh release create` fail on a rerun, update its assets manually or remove only that unpublished draft before rerunning. The workflow intentionally does not silently overwrite published release assets.
 
-### Future dozenal tags
+### Release tags
 
-Use labels such as `v0.0.↊` or `v0.↊.↋`; quote them when invoking Git. Git supports Unicode tag names. The `v0.*.*` workflow pattern admits those labels. Cargo/OS metadata still needs numeric machine versions. Update Cargo, `VERSION`, lockfile, Info.plist, README and release notes together. The packager reads the human label from source instead of treating Cargo's decimal version as a dozenal string.
+The workflow accepts tags shaped like `v0.1.0` or `v1.0.0`. The packager checks the exact tag against the Cargo package version and rejects mismatches. The `v` prefix is used for tags and display; all numeric components are decimal.
 
 ### Local packaging and validation
 
@@ -212,6 +214,12 @@ The reported `office has no focus geometry` assertion assumed a separate span re
 
 ## Latest UI revision evidence
 
-Version remains v0.0.1. Nine focused tests passed for countdown formatting/custom alphabets, fixed focus anchoring, rollback/defaults/export isolation, command-arrow navigation, ORP/em-dash behavior and prior editor/guide/slider regressions. Strict Clippy and the complete FreeBSD cross-target check passed. A native macOS run rendered Settings, confirmation, About and export-preview dialogs and installed the native menu. Focus screenshots for “an” and “written” had identical guide rectangles: x=1098–1101 at y=620–634 and y=885–899 in a 2200×1520 client image. The alphabet/font rename was visible in the native controls. No Linux/Windows/FreeBSD desktop, native menu click automation, broad soak, new timing benchmark or full-suite rerun is claimed for this update.
+The preceding v0.0.1 UI revision passed nine focused tests passed for countdown formatting/custom alphabets, fixed focus anchoring, rollback/defaults/export isolation, command-arrow navigation, ORP/em-dash behavior and prior editor/guide/slider regressions. Strict Clippy and the complete FreeBSD cross-target check passed. A native macOS run rendered Settings, confirmation, About and export-preview dialogs and installed the native menu. Focus screenshots for “an” and “written” had identical guide rectangles: x=1098–1101 at y=620–634 and y=885–899 in a 2200×1520 client image. The alphabet/font rename was visible in the native controls. No Linux/Windows/FreeBSD desktop, native menu click automation, broad soak, new timing benchmark or full-suite rerun is claimed for this update.
 
 The macOS-only muda dependency supplies the application menu; its own licenses remain separate from VRX's Unlicense. Axa Mono is a renamed OFL font with preserved glyphs/metrics and original copyright/license. All README content now uses GitHub-supported HTML.
+
+## Working version 0.1.0
+
+Release numbering now uses decimal semantic versions from Cargo. Radix/base and alphabet controls are collapsed under Radix notation in Personalize. Windowed sidebar/dedicated widths are 525/650 logical pixels (25% larger); fullscreen keeps 420/520. Generation-tagged window-mode queries follow native resize/focus events, without an idle poll, so native fullscreen controls are reflected in the layout too. Historical measurements above retain their original version labels.
+
+For 0.1.0, three focused tests passed: decimal release labels, older-configuration compatibility, and collapsed notation/fullscreen-width behavior (including stale mode replies). Strict Clippy, workflow syntax validation, the native release build and FreeBSD cross-target compilation passed. README local links were checked, and runtime behavior claims were reviewed against source. Remote GitHub release availability was not verified; the README now refers only to assets actually published. The About popup now uses centered summary text instead of the full license body; full license files remain bundled. No full-suite or new timing benchmark run is claimed.

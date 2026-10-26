@@ -198,6 +198,9 @@ pub struct Fields {
     pub radix: String,
     pub alphabet: String,
     pub ternary: String,
+    pub notation_expanded: bool,
+    pub adaptive_expanded: bool,
+    pub bindings_expanded: bool,
 }
 impl Fields {
     pub fn new(c: &Config) -> Self {
@@ -214,6 +217,9 @@ impl Fields {
             radix: c.radix.to_string(),
             alphabet: c.numeral_alphabet.clone(),
             ternary: c.ternary_alphabet.clone(),
+            notation_expanded: false,
+            adaptive_expanded: false,
+            bindings_expanded: false,
         }
     }
     pub fn get(&self, n: Number) -> &str {
@@ -300,6 +306,31 @@ fn color_field<'a>(
     .into()
 }
 
+fn section_header<'a>(
+    config: &'a Config,
+    label: &str,
+    expanded: bool,
+    message: Message,
+) -> Element<'a, Message> {
+    button(text(format!(
+        "{} {label}",
+        if expanded { "▾" } else { "▸" }
+    )))
+    .width(Length::Fill)
+    .padding([10, 12])
+    .on_press(message)
+    .style(move |_, status| super::theme::dropdown_button(config, status))
+    .into()
+}
+
+pub fn panel_widths(fullscreen: bool) -> (f32, f32) {
+    if fullscreen {
+        (420.0, 520.0)
+    } else {
+        (525.0, 650.0)
+    }
+}
+
 pub fn view<'a>(
     c: &'a Config,
     fields: &'a Fields,
@@ -326,22 +357,34 @@ pub fn view<'a>(
                 .color(iced::Color::from_rgb8(244, 131, 131)),
         );
     }
-    content=content.push(text("READING & NUMBERS").size(11))
-        .push(row![
-            column![text("Radix / base").size(13), text("2–60 · decimal input").size(10)].width(Length::Fill),
-            text_input("2–60", &fields.radix)
-                .font(NUMBER_FONT)
-                .size(14)
-                .on_input(Message::RadixInput)
-                .on_submit(Message::RadixApply)
-                .width(152)
-        ].spacing(10).align_y(iced::Center))
-        .push(text("Radix stays decimal. Ternary is balanced; its symbols can be changed below. RGB hex, versions, files and API formats retain their own notation.").size(11))
-        .push(text("Numeral alphabet · symbols in value order").size(12))
-        .push(text_input("Digit symbols",&fields.alphabet).font(NUMBER_FONT).on_input(Message::AlphabetInput).on_submit(Message::AlphabetApply))
-        .push(text("Balanced ternary · negative one, zero, positive one").size(12))
-        .push(text_input("T01",&fields.ternary).font(NUMBER_FONT).on_input(Message::TernaryInput).on_submit(Message::AlphabetApply))
-        .push(button("Apply numeral symbols").on_press(Message::AlphabetApply))
+    content = content
+        .push(text("READING & NUMBERS").size(11))
+        .push(section_header(
+            c,
+            "Radix notation",
+            fields.notation_expanded,
+            Message::ToggleNotation,
+        ));
+    if fields.notation_expanded {
+        let notation=column![
+            row![column![text("Radix / base").size(13),text("2–60 · decimal input").size(10)].width(Length::Fill),
+                text_input("2–60",&fields.radix).font(NUMBER_FONT).size(14)
+                    .on_input(Message::RadixInput).on_submit(Message::RadixApply).width(152)].spacing(10).align_y(iced::Center),
+            text("Radix stays decimal. Ternary is balanced; set its symbols below. RGB hex, versions, files and API formats keep their established notation.").size(11),
+            text("Numeral alphabet · symbols in value order").size(12),
+            text_input("Digit symbols",&fields.alphabet).font(NUMBER_FONT).on_input(Message::AlphabetInput).on_submit(Message::AlphabetApply),
+            text("Balanced ternary · negative one, zero, positive one").size(12),
+            text_input("T01",&fields.ternary).font(NUMBER_FONT).on_input(Message::TernaryInput).on_submit(Message::AlphabetApply),
+            button("Apply numeral symbols").on_press(Message::AlphabetApply),
+            text("Pause sliders use one fractional digit of the selected base; typed values retain thousandth precision.").size(11)
+        ].spacing(12);
+        content = content.push(
+            container(notation)
+                .padding(12)
+                .style(move |_| super::theme::dropdown_panel(c)),
+        );
+    }
+    content=content
         .push(text("COUNTDOWN").size(11))
         .push(row![button("Clock").on_press(Message::CountdownPreset(0)),button("s / m").on_press(Message::CountdownPreset(1)),button("Words").on_press(Message::CountdownPreset(2)),button("No labels").on_press(Message::CountdownPreset(3))].spacing(5))
         .push(text("Under one minute / one minute and longer").size(12))
@@ -349,30 +392,47 @@ pub fn view<'a>(
         .push(text_input("{minutes}:{seconds:02}",&c.countdown_long).on_input(|s|Message::Set(Setting::CountdownLong(s))))
         .push(text("Placeholders: {minutes}, {seconds}, {seconds:02}, {total_seconds}. Add any labels you prefer.").size(11))
         .push(number(c,fields,Number::Wpm,"Nominal WPM"))
-        .push(number(c,fields,Number::Jump,"Words per arrow / jump button"))
-        .push(number(c,fields,Number::Step,"WPM step"))
-        .push(checkbox(c.timing.adaptive).label("Adaptive timing").on_toggle(|v|Message::Set(Setting::Adaptive(v))));
-    for (n, label) in [
-        (Number::Long, "Long word ×"),
-        (Number::Comma, "Comma ×"),
-        (Number::Colon, "Colon ×"),
-        (Number::Semicolon, "Semicolon ×"),
-        (Number::Sentence, "Sentence ending ×"),
-        (Number::Paragraph, "Paragraph ending ×"),
-        (Number::Quote, "Quotation marks ×"),
-        (Number::Parenthesis, "Parentheses / brackets ×"),
-        (Number::Dash, "Em / en dash ×"),
-    ] {
-        content = content.push(number(c, fields, n, label)).push(
-            slider(n.slider_range(c), n.slider_value(c), move |v| {
-                Message::NumberSlider(n, v)
-            })
-            .step(1u32),
+        .push(section_header(c,"Adaptive timing",fields.adaptive_expanded,Message::ToggleAdaptive));
+    if fields.adaptive_expanded {
+        let mut timing = column![
+            checkbox(c.timing.adaptive)
+                .label("Enable adaptive timing")
+                .on_toggle(|v| Message::Set(Setting::Adaptive(v))),
+            text("The strongest applicable pause is used. Disable for constant-WPM reading.")
+                .size(12)
+        ]
+        .spacing(12);
+        for (n, label) in [
+            (Number::Long, "Long word ×"),
+            (Number::Comma, "Comma ×"),
+            (Number::Colon, "Colon ×"),
+            (Number::Semicolon, "Semicolon ×"),
+            (Number::Sentence, "Sentence ending ×"),
+            (Number::Paragraph, "Paragraph ending ×"),
+            (Number::Quote, "Quotation marks ×"),
+            (Number::Parenthesis, "Parentheses / brackets ×"),
+            (Number::Dash, "Em / en dash ×"),
+        ] {
+            timing = timing.push(number(c, fields, n, label)).push(
+                slider(n.slider_range(c), n.slider_value(c), move |v| {
+                    Message::NumberSlider(n, v)
+                })
+                .step(1u32),
+            );
+        }
+        timing = timing.push(number(
+            c,
+            fields,
+            Number::Section,
+            "Extra section pause · ms",
+        ));
+        content = content.push(
+            container(timing)
+                .padding(12)
+                .style(move |_| super::theme::dropdown_panel(c)),
         );
     }
-    content=content.push(text("Pause sliders move in one fractional digit of the chosen base. Typed values keep thousandth precision.").size(11))
-        .push(number(c,fields,Number::Section,"Extra section pause · ms"))
-        .push(pick_list([Overrun::Preserve,Overrun::MaintainPace],Some(c.timing.overrun),|v|Message::Set(Setting::Policy(v))))
+    content=content.push(pick_list([Overrun::Preserve,Overrun::MaintainPace],Some(c.timing.overrun),|v|Message::Set(Setting::Policy(v))))
         .push(text("FOCAL POINT & POSITION").size(11))
         .push(checkbox(c.focal_enabled).label("Enable focal point / ORP highlight").on_toggle(|v|Message::Set(Setting::Focal(v))))
         .push(pick_list(Strategy::ALL,Some(c.orp),|v|Message::Set(Setting::Orp(v))))
@@ -399,33 +459,47 @@ pub fn view<'a>(
         .push(color_input("Custom foreground",&c.foreground,Setting::Foreground))
         .push(color_input("Custom background",&c.background,Setting::Background))
         .push(color_input("Custom accent",&c.accent,Setting::Accent))
+        .push(color_field("Dropdown color · empty = accent",&c.dropdown_color,Setting::DropdownColor,Some(super::theme::dropdown_accent(c))))
         .push(color_input("Warning / confirmation",&c.warning,Setting::Warning))
         .push(text("EXPORT").size(11))
         .push(color_input("Default export background color",&c.export_background,Setting::ExportBackground))
         .push(text("RGB hex · 00FF00 is chroma green. Independent of the reading background. Used by MP4 and ASS; SRT has no color.").size(11))
-        .push(text("KEYBINDINGS").size(11))
-        .push(text("Edit and press Enter, or use Record. Separate alternate shortcuts with a semicolon. Clear an old assignment before reusing it.").size(12));
-    for action in Action::ALL {
-        content = content.push(text(action.label()).size(12)).push(
-            row![
-                text_input("Unbound", fields.binding(action))
-                    .size(12)
-                    .on_input(move |s| Message::BindingInput(action, s))
-                    .on_submit(Message::ApplyBinding(action))
-                    .width(Length::Fill),
-                button(if listening == Some(action) {
-                    "Press key…"
-                } else {
-                    "Record"
-                })
-                .on_press(Message::RecordBinding(action)),
-                button("Clear").on_press(Message::ClearBinding(action))
-            ]
-            .spacing(6),
+        .push(section_header(c,"Keybindings",fields.bindings_expanded,Message::ToggleBindings));
+    if fields.bindings_expanded {
+        let mut bindings=column![
+            number(c,fields,Number::Jump,"Words per arrow / jump button"),
+            number(c,fields,Number::Step,"WPM step"),
+            text("Edit and press Enter, or use Record. Separate alternate shortcuts with a semicolon. Clear an old assignment before reusing it.").size(12)
+        ].spacing(12);
+        for action in Action::ALL {
+            bindings = bindings.push(text(action.label()).size(12)).push(
+                row![
+                    text_input("Unbound", fields.binding(action))
+                        .size(12)
+                        .on_input(move |s| Message::BindingInput(action, s))
+                        .on_submit(Message::ApplyBinding(action))
+                        .width(Length::Fill),
+                    button(if listening == Some(action) {
+                        "Press key…"
+                    } else {
+                        "Record"
+                    })
+                    .on_press(Message::RecordBinding(action)),
+                    button("Clear").on_press(Message::ClearBinding(action))
+                ]
+                .spacing(6),
+            );
+        }
+        bindings = bindings.push(button("Restore default keybindings").on_press(
+            Message::RequestConfirm(crate::message::ConfirmKind::Keybindings),
+        ));
+        content = content.push(
+            container(bindings)
+                .padding(12)
+                .style(move |_| super::theme::dropdown_panel(c)),
         );
     }
-    content=content.push(button("Restore default keybindings").on_press(Message::RequestConfirm(crate::message::ConfirmKind::Keybindings)))
-        .push(text("BEHAVIOR").size(11))
+    content=content.push(text("BEHAVIOR").size(11))
         .push(checkbox(c.minimal_playback).label("Hide controls during playback").on_toggle(|v|Message::Set(Setting::Minimal(v))))
         .push(checkbox(c.diagnostics).label("Developer diagnostics").on_toggle(|v|Message::Set(Setting::Diagnostics(v))))
         .push(button("Restore all defaults").on_press(Message::RequestConfirm(crate::message::ConfirmKind::Defaults)))

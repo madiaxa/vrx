@@ -72,6 +72,8 @@ pub struct Config {
     /// Opaque export canvas, independent of the reader theme.
     pub export_background: String,
     pub accent: String,
+    /// Empty follows the active theme accent for collapsible section headers.
+    pub dropdown_color: String,
     pub warning: String,
     pub guide: bool,
     pub focal_enabled: bool,
@@ -109,6 +111,7 @@ impl Default for Config {
             background: "10151D".into(),
             export_background: "00FF00".into(),
             accent: "FFAD7D".into(),
+            dropdown_color: String::new(),
             warning: "F2CB75".into(),
             guide: true,
             focal_enabled: true,
@@ -173,6 +176,9 @@ impl Config {
         }
         if crate::countdown::validate(&self.countdown_long).is_err() {
             self.countdown_long = "{minutes}:{seconds:02}".into();
+        }
+        if !self.dropdown_color.is_empty() && !valid_rgb(&self.dropdown_color) {
+            self.dropdown_color.clear();
         }
         if !valid_rgb(&self.warning) {
             self.warning = "F2CB75".into();

@@ -90,10 +90,9 @@ fn timed_subtitle_exports_and_cancellation() -> Result<()> {
     Ok(())
 }
 #[test]
-fn dozenal_release_labels() {
-    assert_eq!(vrx::version::label(0, 1), "v0.0.1");
-    assert_eq!(vrx::version::label(10, 11), "v0.↊.↋");
-    assert_eq!(vrx::version::dozenal(12), "10");
+fn decimal_release_labels() {
+    assert_eq!(vrx::version::label(1, 0), "v0.1.0");
+    assert_eq!(vrx::version::label(10, 11), "v0.10.11");
 }
 
 #[test]
@@ -112,7 +111,7 @@ fn older_config_loads_new_preferences_and_keeps_version() -> Result<()> {
         config.timing.duration(d.token(0).ok_or("token")?),
         std::time::Duration::from_millis(350)
     );
-    assert_eq!(vrx::VERSION, "v0.0.1");
+    assert_eq!(vrx::VERSION, "v0.1.0");
     let mut config = config;
     config.radix = 3;
     config.focal_enabled = false;

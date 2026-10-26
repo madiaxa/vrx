@@ -24,11 +24,14 @@ TARGETS = {
 
 
 def release_label():
-    found = re.search(r'pub const VERSION: &str = "(v0\.[0-9↊↋]+\.[0-9↊↋]+)";',
-                      (ROOT / "src/lib.rs").read_text(encoding="utf-8"))
+    # Cargo is the single source of truth; this also works with Python 3.9.
+    package = (ROOT / "Cargo.toml").read_text(encoding="utf-8").split("[package]", 1)[-1]
+    package = re.split(r"^\[", package, maxsplit=1, flags=re.MULTILINE)[0]
+    found = re.search(r'^version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"\s*$',
+                      package, flags=re.MULTILINE)
     if found is None:
-        raise ValueError("Cannot find VRX's dozenal release label")
-    return found.group(1)
+        raise ValueError("Cargo package version must use decimal major.minor.patch components")
+    return "v" + found.group(1)
 
 
 def verify_target(binary, target):
@@ -56,6 +59,7 @@ def copy_documentation(destination):
     for name in ["README.md", "LICENSE"]:
         shutil.copy2(ROOT / name, destination / name)
     shutil.copytree(ROOT / "docs", destination / "docs")
+    shutil.copytree(ROOT / "examples", destination / "examples")
     shutil.copy2(ROOT / "packaging/THIRD_PARTY.md", destination / "THIRD_PARTY.md")
     shutil.copytree(ROOT / "packaging/licenses", destination / "licenses")
 
@@ -70,7 +74,7 @@ def main():
     verify_target(binary, args.target)
     label = release_label()
     if os.environ.get("GITHUB_REF_TYPE") == "tag" and os.environ.get("GITHUB_REF_NAME") != label:
-        raise ValueError("Git tag must match src/lib.rs VERSION exactly")
+        raise ValueError("Git tag must match the Cargo.toml package version with a v prefix")
     args.output.mkdir(parents=True, exist_ok=True)
     name = f"vrx-{label}-{args.target}"
     archive = args.output / (name + (".zip" if "windows" in args.target or "apple" in args.target else ".tar.gz"))

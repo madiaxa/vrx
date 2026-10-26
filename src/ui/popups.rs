@@ -33,11 +33,20 @@ pub fn modal<'a>(
     iced::widget::stack![base, iced::widget::opaque(backdrop)].into()
 }
 pub fn about<'a>() -> Element<'a, Message> {
-    column![text("VRX").size(32),text(format!("Visual Reader X · {}",vrx::VERSION)).size(18),
-text("VRX is released under the Unlicense."),
-        container(scrollable(text(include_str!("../../LICENSE")).size(12))).height(210),
-        text("Dependencies keep their own licenses. Axa Mono is distributed under the SIL Open Font License 1.1; see the bundled notices.").size(12),
-        button("Close").on_press(Message::ClosePopup)].spacing(14).into()
+    column![
+        text("VRX").size(32).width(Length::Fill).align_x(iced::Center),
+        text(format!("Visual Reader X · {}", vrx::VERSION))
+            .size(18).width(Length::Fill).align_x(iced::Center),
+        text("Released under the Unlicense (public domain dedication).")
+            .width(Length::Fill).align_x(iced::Center),
+        text("Third-party libraries retain their own licenses. Axa Mono uses the SIL Open Font License 1.1. Full license texts are included with the application.")
+            .size(12).width(Length::Fill).align_x(iced::Center),
+        button("Close").on_press(Message::ClosePopup),
+    ]
+    .spacing(16)
+    .width(Length::Fill)
+    .align_x(iced::Center)
+    .into()
 }
 pub fn confirm<'a>(kind: ConfirmKind, c: &'a Config) -> Element<'a, Message> {
     let (title, description, label) = match kind {

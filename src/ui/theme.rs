@@ -82,3 +82,52 @@ pub fn warning_button(
         ..Default::default()
     }
 }
+
+/// A dedicated override remains effective in preset themes as well as Custom.
+pub fn dropdown_accent(config: &Config) -> Color {
+    if vrx::config::valid_rgb(&config.dropdown_color) {
+        hex(&config.dropdown_color)
+    } else {
+        palette(config).2
+    }
+}
+pub fn dropdown_button(
+    config: &Config,
+    status: iced::widget::button::Status,
+) -> iced::widget::button::Style {
+    let accent = dropdown_accent(config);
+    let (background, foreground, _) = palette(config);
+    let luma = |c: Color| 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+    let text = if (luma(accent) - luma(background)).abs() < 0.3 {
+        foreground
+    } else {
+        accent
+    };
+    let alpha = match status {
+        iced::widget::button::Status::Hovered => 0.20,
+        iced::widget::button::Status::Pressed => 0.28,
+        _ => 0.12,
+    };
+    iced::widget::button::Style {
+        background: Some(accent.scale_alpha(alpha).into()),
+        text_color: text,
+        border: iced::Border {
+            color: accent.scale_alpha(0.5),
+            width: 1.0,
+            radius: 6.0.into(),
+        },
+        ..Default::default()
+    }
+}
+pub fn dropdown_panel(config: &Config) -> iced::widget::container::Style {
+    let accent = dropdown_accent(config);
+    iced::widget::container::Style {
+        background: Some(accent.scale_alpha(0.035).into()),
+        border: iced::Border {
+            color: accent.scale_alpha(0.22),
+            width: 1.0,
+            radius: 6.0.into(),
+        },
+        ..Default::default()
+    }
+}
