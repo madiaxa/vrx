@@ -25,7 +25,7 @@ use vrx::{
     text::Document,
 };
 
-const DEMO: &str = "Welcome to VRX.\n\nOne word. One focal point. A little more room to think.\n\nPress Space to begin. Your eyes can rest on the highlighted character while the words come to you. Use the arrow keys to jump, and Shift with an arrow to move one word. Change your pace with the up and down keys.\n\nOpen a text or Markdown file, drop one onto this window, or paste from your clipboard. Make the type and timing your own in Personalize. Start slowly, find a comfortable rhythm, and enjoy the reading.";
+const DEMO: &str = "Welcome to VRX, an extremely capable RSVP reader written in blazingly fast Rust.\nThe goal of VRX is to provide a swift and smooth reading experience for any amount of text, from paragraphs to pages (and beyond). It also allows the same customization options you'd expect from AxaSuite: radix choice, color options, and every keybinding you could possibly need.\nUse your left/right arrow keys to move forwards/backwards in the text. Change your pace with the up and down keys; alternatively, control it at the bottom right corner of the program.\nYou may be wondering, "Why is this program called VRX?" It's an acronym that stands for "Visual Reader X". Unfortunately, the X doesn't stand for anything in particular—at least, for now.\nThis sample text contains every character with adaptive timing. Now that you have gotten a feel for VRX, it's time to read rapidly! Read responsibly, too.";
 
 pub struct App {
     pub engine: Playback,
