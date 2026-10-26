@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=VRX
+GenericName=RSVP Reader
+Exec=vrx %f
+Icon=vrx
+Terminal=false
+Categories=Office;Education;
+MimeType=text/plain;text/markdown;text/x-markdown;
+StartupWMClass=vrx

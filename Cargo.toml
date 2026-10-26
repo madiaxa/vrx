@@ -1,0 +1,45 @@
+[package]
+name = "vrx"
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.99"
+description = "A precise, native RSVP reader"
+license = "MIT"
+
+[features]
+smoke = []
+
+[dependencies]
+iced = { version = "0.14.0", default-features = false, features = ["wgpu", "tiny-skia", "advanced", "thread-pool", "x11", "wayland"] }
+unicode-segmentation = "1.12"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+pulldown-cmark = { version = "0.13", default-features = false }
+rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "async-std"] }
+futures-timer = "3"
+directories = "6"
+
+[dev-dependencies]
+criterion = "0.5"
+proptest = "1"
+
+[[bench]]
+name = "core"
+harness = false
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unreachable = "deny"
+

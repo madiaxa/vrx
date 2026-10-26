@@ -1,0 +1,44 @@
+name: FreeBSD
+on:
+  workflow_call:
+    inputs:
+      package:
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Build a release archive
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  freebsd:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Native FreeBSD checks and optional archive
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: "15.0"
+          arch: x86_64
+          mem: 6144
+          envs: VRX_PACKAGE GITHUB_REF_TYPE GITHUB_REF_NAME GITHUB_SHA
+          prepare: |
+            set -eu
+            pkg install -y curl ca_root_nss pkgconf python3 libxkbcommon wayland libX11 libXcursor libXi libXrandr libXrender libXinerama libXfixes fontconfig freetype2 dejavu vulkan-loader
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/vrx-rustup.sh
+            sh /tmp/vrx-rustup.sh -y --profile minimal --default-toolchain stable --component rustfmt --component clippy
+          run: sh packaging/freebsd-ci.sh
+        env:
+          VRX_PACKAGE: ${{ inputs.package }}
+      - uses: actions/upload-artifact@v7
+        if: inputs.package
+        with:
+          name: vrx-x86_64-unknown-freebsd
+          path: dist/*
+          if-no-files-found: error

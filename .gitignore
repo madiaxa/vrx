@@ -1,0 +1,6 @@
+/target/
+*.partial
+*.partial.mp4
+.DS_Store
+/dist/
+__pycache__/
