@@ -146,6 +146,114 @@ impl Notation {
     }
 }
 
+/// User-selectable symbols; numeric values and machine interfaces stay unchanged.
+#[derive(Debug, Clone, Copy)]
+pub struct CustomNotation<'a> {
+    pub radix: u8,
+    pub alphabet: &'a str,
+    /// Symbols in the order negative one, zero, positive one.
+    pub ternary: &'a str,
+}
+pub fn validate_alphabet(alphabet: &str, minimum: usize, maximum: usize) -> Result<()> {
+    let symbols: Vec<char> = alphabet.chars().take(maximum.saturating_add(1)).collect();
+    if symbols.len() < minimum || symbols.len() > maximum {
+        return Err(format!("Use {minimum} through {maximum} unique symbols"));
+    }
+    for (i, symbol) in symbols.iter().enumerate() {
+        if symbol.is_whitespace()
+            || symbol.is_control()
+            || ".-−+:{}".contains(*symbol)
+            || symbols
+                .get(..i)
+                .is_some_and(|previous| previous.contains(symbol))
+        {
+            return Err("Symbols must be unique; spaces, signs, colon, braces and the decimal point are reserved".into());
+        }
+    }
+    Ok(())
+}
+impl<'a> CustomNotation<'a> {
+    pub fn base(self) -> u8 {
+        Notation(self.radix).base()
+    }
+    fn symbols(self) -> &'static str {
+        if self.base() == 3 { "T01" } else { DIGITS }
+    }
+    fn selected(self) -> &'a str {
+        if self.base() == 3 {
+            self.ternary
+        } else {
+            self.alphabet
+        }
+    }
+    fn encode(self, input: String) -> String {
+        if self.selected() == self.symbols() {
+            return input;
+        }
+        input
+            .chars()
+            .map(|symbol| {
+                self.symbols()
+                    .chars()
+                    .position(|c| c == symbol)
+                    .and_then(|i| self.selected().chars().nth(i))
+                    .unwrap_or(symbol)
+            })
+            .collect()
+    }
+    fn decode(self, input: &str) -> String {
+        input
+            .chars()
+            .map(|symbol| {
+                self.selected()
+                    .chars()
+                    .position(|c| c == symbol)
+                    .and_then(|i| self.symbols().chars().nth(i))
+                    .unwrap_or(symbol)
+            })
+            .collect()
+    }
+    pub fn integer(self, value: i128) -> String {
+        self.encode(Notation(self.radix).integer(value))
+    }
+    pub fn scaled(self, value: u32, scale: u32) -> String {
+        self.encode(Notation(self.radix).scaled(value, scale))
+    }
+    pub fn parse_integer(self, input: &str) -> Result<i128> {
+        if input.contains('.') {
+            return Err("Enter an integer".into());
+        }
+        self.parse_quantity(input, 1)
+    }
+    pub fn parse_quantity(self, input: &str, scale: u32) -> Result<i128> {
+        // Reject a non-selected symbol instead of accidentally interpreting an
+        // original default digit that the user has replaced.
+        if input
+            .trim()
+            .chars()
+            .any(|c| !".-−".contains(c) && !self.selected().contains(c))
+        {
+            return Err("Use symbols from the selected numeral alphabet".into());
+        }
+        Notation(self.radix).parse_quantity(&self.decode(input.trim()), scale)
+    }
+    pub fn zero(self) -> char {
+        self.selected()
+            .chars()
+            .nth(if self.base() == 3 { 1 } else { 0 })
+            .unwrap_or('0')
+    }
+    pub fn padded(self, value: i128, width: usize) -> String {
+        let text = self.integer(value);
+        let mut out = String::new();
+        for _ in text.chars().count()..width {
+            out.push(self.zero());
+        }
+        out.push_str(&text);
+        out
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

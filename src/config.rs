@@ -72,6 +72,7 @@ pub struct Config {
     /// Opaque export canvas, independent of the reader theme.
     pub export_background: String,
     pub accent: String,
+    pub warning: String,
     pub guide: bool,
     pub focal_enabled: bool,
     /// Empty follows the theme accent; otherwise six RGB hex digits.
@@ -82,6 +83,11 @@ pub struct Config {
     pub guide_gap_percent: u32,
     pub gui_text_size: f32,
     pub radix: u8,
+    pub numeral_alphabet: String,
+    pub ternary_alphabet: String,
+    pub countdown_short: String,
+    pub countdown_long: String,
+    pub side_opacity_percent: u32,
     pub keys: crate::keybinds::Keymap,
     pub vertical: f32,
     pub focal_x: f32,
@@ -103,6 +109,7 @@ impl Default for Config {
             background: "10151D".into(),
             export_background: "00FF00".into(),
             accent: "FFAD7D".into(),
+            warning: "F2CB75".into(),
             guide: true,
             focal_enabled: true,
             focal_color: String::new(),
@@ -111,6 +118,11 @@ impl Default for Config {
             guide_gap_percent: 12,
             gui_text_size: 16.0,
             radix: 10,
+            numeral_alphabet: crate::numerals::DIGITS.into(),
+            ternary_alphabet: "T01".into(),
+            countdown_short: "{seconds}s".into(),
+            countdown_long: "{minutes}:{seconds:02}".into(),
+            side_opacity_percent: 100,
             keys: crate::keybinds::Keymap::default(),
             vertical: 0.46,
             focal_x: 0.45,
@@ -147,6 +159,24 @@ impl Config {
         self.jump_words = self.jump_words.clamp(1, 100_000);
         self.speed_step = self.speed_step.clamp(1, 1000);
         self.radix = self.radix.clamp(2, 60);
+        self.side_opacity_percent = self.side_opacity_percent.min(100);
+        if crate::numerals::validate_alphabet(&self.numeral_alphabet, usize::from(self.radix), 60)
+            .is_err()
+        {
+            self.numeral_alphabet = crate::numerals::DIGITS.into();
+        }
+        if crate::numerals::validate_alphabet(&self.ternary_alphabet, 3, 3).is_err() {
+            self.ternary_alphabet = "T01".into();
+        }
+        if crate::countdown::validate(&self.countdown_short).is_err() {
+            self.countdown_short = "{seconds}s".into();
+        }
+        if crate::countdown::validate(&self.countdown_long).is_err() {
+            self.countdown_long = "{minutes}:{seconds:02}".into();
+        }
+        if !valid_rgb(&self.warning) {
+            self.warning = "F2CB75".into();
+        }
         self.gui_text_size = if self.gui_text_size.is_finite() {
             self.gui_text_size.clamp(12.0, 32.0)
         } else {
@@ -170,10 +200,18 @@ impl Config {
         let color = self.focal_color.as_str();
         (color.len() == 6 && color.bytes().all(|b| b.is_ascii_hexdigit())).then_some(color)
     }
-    pub fn notation(&self) -> crate::numerals::Notation {
-        crate::numerals::Notation(self.radix)
+    pub fn notation(&self) -> crate::numerals::CustomNotation<'_> {
+        crate::numerals::CustomNotation {
+            radix: self.radix,
+            alphabet: &self.numeral_alphabet,
+            ternary: &self.ternary_alphabet,
+        }
     }
     pub fn gui_scale(&self) -> f32 {
         self.gui_text_size / 16.0
     }
+}
+
+pub fn valid_rgb(color: &str) -> bool {
+    color.len() == 6 && color.bytes().all(|b| b.is_ascii_hexdigit())
 }

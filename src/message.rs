@@ -10,6 +10,12 @@ use vrx::{
     text::{Document, orp::Strategy},
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConfirmKind {
+    Defaults,
+    Discard,
+    Keybindings,
+}
 #[derive(Debug, Clone)]
 pub enum Setting {
     Appearance(Appearance),
@@ -27,6 +33,9 @@ pub enum Setting {
     Background(String),
     ExportBackground(String),
     Accent(String),
+    Warning(String),
+    CountdownShort(String),
+    CountdownLong(String),
     Diagnostics(bool),
     Minimal(bool),
 }
@@ -57,6 +66,20 @@ pub enum Message {
     Timer(Ticket, Instant),
     Key(Key, Modifiers),
     Settings,
+    About,
+    #[cfg(target_os = "macos")]
+    InstallMenu,
+    VersionHover(bool),
+    RequestConfirm(ConfirmKind),
+    Confirm,
+    ClosePopup,
+    AlphabetInput(String),
+    TernaryInput(String),
+    AlphabetApply,
+    CountdownPreset(u8),
+    ExportBackground(String),
+    ChooseExport,
+    Quit,
     RadixInput(String),
     RadixApply,
     NumberInput(crate::ui::settings::Number, String),
@@ -75,7 +98,7 @@ pub enum Message {
     Reading,
     WindowAction(Option<window::Id>),
     Export,
-    ExportPath(Option<PathBuf>),
+    ExportPath(u64, Option<PathBuf>),
     Exported(Result<()>),
     CancelExport,
     Saved(Result<()>),

@@ -17,7 +17,7 @@ use vrx::{
 };
 
 pub const NUMBER_FONT: Font = Font {
-    family: font::Family::Name("Clockette Mono"),
+    family: font::Family::Name("Axa Mono"),
     ..Font::DEFAULT
 };
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -29,6 +29,7 @@ pub enum Number {
     GuiSize,
     GuideSize,
     GuideGap,
+    SideOpacity,
     Long,
     Comma,
     Colon,
@@ -43,7 +44,7 @@ pub enum Number {
     Y,
 }
 impl Number {
-    pub const ALL: [Self; 19] = [
+    pub const ALL: [Self; 20] = [
         Self::Wpm,
         Self::Jump,
         Self::Step,
@@ -51,6 +52,7 @@ impl Number {
         Self::GuiSize,
         Self::GuideSize,
         Self::GuideGap,
+        Self::SideOpacity,
         Self::Long,
         Self::Comma,
         Self::Colon,
@@ -92,7 +94,7 @@ impl Number {
             Self::Size => (20, 360),
             Self::GuiSize => (12, 32),
             Self::GuideSize => (25, 400),
-            Self::GuideGap => (0, 100),
+            Self::GuideGap | Self::SideOpacity => (0, 100),
             Self::Section => (0, 10000),
             Self::X | Self::Y => (2000, 98000),
             _ => (1000, 5000),
@@ -107,6 +109,7 @@ impl Number {
             Self::GuiSize => c.gui_text_size.round() as u32,
             Self::GuideSize => c.guide_size_percent,
             Self::GuideGap => c.guide_gap_percent,
+            Self::SideOpacity => c.side_opacity_percent,
             Self::Long => c.timing.long,
             Self::Comma => c.timing.comma,
             Self::Colon => {
@@ -142,6 +145,7 @@ impl Number {
             Self::GuiSize => c.gui_text_size = value as f32,
             Self::GuideSize => c.guide_size_percent = value,
             Self::GuideGap => c.guide_gap_percent = value,
+            Self::SideOpacity => c.side_opacity_percent = value,
             Self::Long => c.timing.long = value,
             Self::Comma => c.timing.comma = value,
             Self::Colon => c.timing.colon = value,
@@ -192,6 +196,8 @@ pub struct Fields {
     pub bindings: BTreeMap<Action, String>,
     pub notice: Option<String>,
     pub radix: String,
+    pub alphabet: String,
+    pub ternary: String,
 }
 impl Fields {
     pub fn new(c: &Config) -> Self {
@@ -206,6 +212,8 @@ impl Fields {
                 .collect(),
             notice: None,
             radix: c.radix.to_string(),
+            alphabet: c.numeral_alphabet.clone(),
+            ternary: c.ternary_alphabet.clone(),
         }
     }
     pub fn get(&self, n: Number) -> &str {
@@ -230,36 +238,80 @@ fn number<'a>(
         c.notation().scaled(min, n.scale()),
         c.notation().scaled(max, n.scale())
     );
-    row![
-        column![text(label).size(13), text(hint).font(NUMBER_FONT).size(10)].width(Length::Fill),
-        text_input("", fields.get(n))
-            .font(NUMBER_FONT)
-            .size(14)
+    let input = text_input("", fields.get(n))
+        .font(NUMBER_FONT)
+        .size(14)
+        .width(152);
+    let input = if n == Number::SideOpacity && !c.focal_enabled {
+        input
+    } else {
+        input
             .on_input(move |s| Message::NumberInput(n, s))
             .on_submit(Message::NumberApply(n))
-            .width(152)
+    };
+    row![
+        column![text(label).size(13), text(hint).font(NUMBER_FONT).size(10)].width(Length::Fill),
+        input
     ]
     .spacing(10)
     .align_y(iced::Center)
     .into()
 }
+pub fn color_input<'a>(
+    label: &'static str,
+    value: &'a str,
+    change: fn(String) -> Setting,
+) -> Element<'a, Message> {
+    color_field(label, value, change, None)
+}
+fn color_field<'a>(
+    label: &'static str,
+    value: &'a str,
+    change: fn(String) -> Setting,
+    fallback: Option<iced::Color>,
+) -> Element<'a, Message> {
+    let rgb = vrx::config::valid_rgb(value);
+    let valid = rgb || (value.is_empty() && fallback.is_some());
+    let color = if rgb {
+        super::theme::hex(value)
+    } else {
+        fallback.unwrap_or(iced::Color::TRANSPARENT)
+    };
+    row![
+        text(label).size(12).width(Length::Fill),
+        text_input("RGB hex", value)
+            .on_input(move |s| Message::Set(change(s)))
+            .width(110),
+        container(text(if valid { " " } else { "?" }).size(12))
+            .center_x(26)
+            .center_y(26)
+            .style(move |_| container::Style {
+                background: Some(color.into()),
+                border: iced::Border {
+                    color: iced::Color::from_rgb(0.5, 0.5, 0.5),
+                    width: 1.0,
+                    radius: 3.0.into()
+                },
+                ..Default::default()
+            })
+    ]
+    .spacing(6)
+    .align_y(iced::Center)
+    .into()
+}
+
 pub fn view<'a>(
     c: &'a Config,
     fields: &'a Fields,
     listening: Option<Action>,
 ) -> Element<'a, Message> {
-    let color = |label: &'static str, value: &str, change: fn(String) -> Setting| {
-        row![
-            text(label).size(13).width(Length::Fill),
-            text_input("RGB hex", value)
-                .on_input(move |s| Message::Set(change(s)))
-                .width(140)
-        ]
-        .spacing(10)
-    };
     let mut content = column![
+        text("Personalize").size(22),
         row![
-            text("Personalize").size(22).width(Length::Fill),
+            button("Discard changes").on_press(Message::RequestConfirm(
+                crate::message::ConfirmKind::Discard
+            )),
+            iced::widget::space::horizontal(),
             button("Done").on_press(Message::Settings)
         ],
         text("Click any number to edit. Enter applies; Done saves.").size(12)
@@ -284,7 +336,18 @@ pub fn view<'a>(
                 .on_submit(Message::RadixApply)
                 .width(152)
         ].spacing(10).align_y(iced::Center))
-        .push(text("Radix selector stays decimal. Ternary uses T, 0, 1. RGB hex, versions, files and API formats retain their own notation.").size(11))
+        .push(text("Radix stays decimal. Ternary is balanced; its symbols can be changed below. RGB hex, versions, files and API formats retain their own notation.").size(11))
+        .push(text("Numeral alphabet · symbols in value order").size(12))
+        .push(text_input("Digit symbols",&fields.alphabet).font(NUMBER_FONT).on_input(Message::AlphabetInput).on_submit(Message::AlphabetApply))
+        .push(text("Balanced ternary · negative one, zero, positive one").size(12))
+        .push(text_input("T01",&fields.ternary).font(NUMBER_FONT).on_input(Message::TernaryInput).on_submit(Message::AlphabetApply))
+        .push(button("Apply numeral symbols").on_press(Message::AlphabetApply))
+        .push(text("COUNTDOWN").size(11))
+        .push(row![button("Clock").on_press(Message::CountdownPreset(0)),button("s / m").on_press(Message::CountdownPreset(1)),button("Words").on_press(Message::CountdownPreset(2)),button("No labels").on_press(Message::CountdownPreset(3))].spacing(5))
+        .push(text("Under one minute / one minute and longer").size(12))
+        .push(text_input("{seconds}s",&c.countdown_short).on_input(|s|Message::Set(Setting::CountdownShort(s))))
+        .push(text_input("{minutes}:{seconds:02}",&c.countdown_long).on_input(|s|Message::Set(Setting::CountdownLong(s))))
+        .push(text("Placeholders: {minutes}, {seconds}, {seconds:02}, {total_seconds}. Add any labels you prefer.").size(11))
         .push(number(c,fields,Number::Wpm,"Nominal WPM"))
         .push(number(c,fields,Number::Jump,"Words per arrow / jump button"))
         .push(number(c,fields,Number::Step,"WPM step"))
@@ -315,26 +378,30 @@ pub fn view<'a>(
         .push(pick_list(Strategy::ALL,Some(c.orp),|v|Message::Set(Setting::Orp(v))))
         .push(checkbox(c.guide).label("Show focal guide when enabled").on_toggle(|v|Message::Set(Setting::Guide(v))))
         .push(pick_list(GuideShape::ALL,Some(c.guide_shape),|v|Message::Set(Setting::GuideShape(v))))
-        .push(color("Focal color · empty = theme",&c.focal_color,Setting::FocalColor))
+        .push(color_field("Focal color · empty = theme",&c.focal_color,Setting::FocalColor,Some(super::theme::focal_color(c))))
+        .push(number(c,fields,Number::SideOpacity,"Side letter opacity · %"))
         .push(number(c,fields,Number::GuideSize,"Guide size · % of default"))
         .push(number(c,fields,Number::GuideGap,"Guide gap · % of reading size"))
         .push(text("Guide marks scale with the reading type and shrink with words that need to fit.").size(11))
-        .push(text("Drag the target in this pad or the reading area. Focus mode centers the whole word.").size(12))
+        .push(text("Drag the target in this pad or the reading area. Focus mode keeps the focal grapheme at screen center.").size(12))
         .push(AnchorPad{config:c})
         .push(number(c,fields,Number::X,"Horizontal position · %"))
         .push(number(c,fields,Number::Y,"Vertical position · %"))
         .push(text("TYPOGRAPHY & COLOR").size(11))
+        .push(container(super::reader::Reader::preview(c,"Reading",super::reader::Mode::Preview)).height(155).width(Length::Fill)
+            .style(move |_|container::Style{background:Some(super::theme::palette(c).0.into()),..Default::default()}))
         .push(pick_list(FontFamily::ALL,Some(c.font),|v|Message::Set(Setting::Font(v))))
         .push(number(c,fields,Number::Size,"RSVP type size · px"))
         .push(slider(20..=360,Number::Size.value(c),|v|Message::NumberValue(Number::Size,v)))
         .push(number(c,fields,Number::GuiSize,"Interface text size · px"))
         .push(checkbox(c.bold).label("Bold RSVP type").on_toggle(|v|Message::Set(Setting::Bold(v))))
         .push(pick_list(Appearance::ALL,Some(c.appearance),|v|Message::Set(Setting::Appearance(v))))
-        .push(color("Custom foreground",&c.foreground,Setting::Foreground))
-        .push(color("Custom background",&c.background,Setting::Background))
-        .push(color("Custom accent",&c.accent,Setting::Accent))
+        .push(color_input("Custom foreground",&c.foreground,Setting::Foreground))
+        .push(color_input("Custom background",&c.background,Setting::Background))
+        .push(color_input("Custom accent",&c.accent,Setting::Accent))
+        .push(color_input("Warning / confirmation",&c.warning,Setting::Warning))
         .push(text("EXPORT").size(11))
-        .push(color("Export background",&c.export_background,Setting::ExportBackground))
+        .push(color_input("Default export background color",&c.export_background,Setting::ExportBackground))
         .push(text("RGB hex · 00FF00 is chroma green. Independent of the reading background. Used by MP4 and ASS; SRT has no color.").size(11))
         .push(text("KEYBINDINGS").size(11))
         .push(text("Edit and press Enter, or use Record. Separate alternate shortcuts with a semicolon. Clear an old assignment before reusing it.").size(12));
@@ -357,10 +424,11 @@ pub fn view<'a>(
             .spacing(6),
         );
     }
-    content=content.push(button("Restore default keybindings").on_press(Message::ResetBindings))
+    content=content.push(button("Restore default keybindings").on_press(Message::RequestConfirm(crate::message::ConfirmKind::Keybindings)))
         .push(text("BEHAVIOR").size(11))
         .push(checkbox(c.minimal_playback).label("Hide controls during playback").on_toggle(|v|Message::Set(Setting::Minimal(v))))
         .push(checkbox(c.diagnostics).label("Developer diagnostics").on_toggle(|v|Message::Set(Setting::Diagnostics(v))))
+        .push(button("Restore all defaults").on_press(Message::RequestConfirm(crate::message::ConfirmKind::Defaults)))
         .push(text("Complex scripts use whole-word focus. Native screen-reader support is limited by Iced.").size(11));
     container(scrollable(content))
         .style(container::bordered_box)

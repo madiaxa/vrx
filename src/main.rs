@@ -4,6 +4,8 @@ mod cli;
 mod message;
 #[cfg(feature = "smoke")]
 mod native_bench;
+#[cfg(target_os = "macos")]
+mod native_menu;
 mod ui;
 
 fn main() -> std::process::ExitCode {

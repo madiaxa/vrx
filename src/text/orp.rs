@@ -10,23 +10,19 @@ pub trait OrpAlgorithm {
 pub enum Strategy {
     #[default]
     Classic,
-    ThirtyPercent,
+    #[serde(alias = "thirty_percent")]
+    FortyPercent,
     Center,
     First,
 }
 impl Strategy {
-    pub const ALL: [Self; 4] = [
-        Self::Classic,
-        Self::ThirtyPercent,
-        Self::Center,
-        Self::First,
-    ];
+    pub const ALL: [Self; 4] = [Self::Classic, Self::FortyPercent, Self::Center, Self::First];
 }
 impl std::fmt::Display for Strategy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
             Self::Classic => "Classic",
-            Self::ThirtyPercent => "30 percent",
+            Self::FortyPercent => "40 percent",
             Self::Center => "Center",
             Self::First => "First grapheme",
         })
@@ -40,10 +36,10 @@ impl OrpAlgorithm for Strategy {
                 2..=5 => 1,
                 6..=9 => 2,
                 10..=13 => 3,
-                _ => n.saturating_mul(3).div_ceil(10).saturating_sub(1),
+                _ => n.saturating_mul(4).div_ceil(10).saturating_sub(1),
             },
-            Self::ThirtyPercent => n.saturating_mul(3).div_ceil(10).saturating_sub(1),
-            Self::Center => n / 2,
+            Self::FortyPercent => n.saturating_mul(4).div_ceil(10).saturating_sub(1),
+            Self::Center => n.saturating_sub(1) / 2,
             Self::First => 0,
         };
         index.min(n.saturating_sub(1))

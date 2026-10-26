@@ -1,11 +1,12 @@
 # Dependency license inventory
 
-Generated from the verified Cargo.lock resolution, including platform and development dependencies. Individual crate license/notice files remain unchanged. The embedded Clockette Mono font uses assets/OFL.txt.
+Generated from Cargo.lock, including platform and development dependencies. Notices remain unchanged. The embedded Axa Mono font retains assets/OFL.txt and its original copyright. VRX itself uses the Unlicense.
 
 | Package | Version | SPDX license | Bundled notices |
 |---|---|---|---|
 | ab_glyph | 0.2.32 | Apache-2.0 | [LICENSE](licenses/ab_glyph-0.2.32/LICENSE) |
 | ab_glyph_rasterizer | 0.1.10 | Apache-2.0 | [LICENSE](licenses/ab_glyph_rasterizer-0.1.10/LICENSE) |
+| adler2 | 2.0.1 | 0BSD OR MIT OR Apache-2.0 | [LICENSE-0BSD](licenses/adler2-2.0.1/LICENSE-0BSD), [LICENSE-APACHE](licenses/adler2-2.0.1/LICENSE-APACHE), [LICENSE-MIT](licenses/adler2-2.0.1/LICENSE-MIT) |
 | ahash | 0.8.12 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/ahash-0.8.12/LICENSE-APACHE), [LICENSE-MIT](licenses/ahash-0.8.12/LICENSE-MIT) |
 | aho-corasick | 1.1.5 | Unlicense OR MIT | [COPYING](licenses/aho-corasick-1.1.5/COPYING), [LICENSE-MIT](licenses/aho-corasick-1.1.5/LICENSE-MIT) |
 | android-activity | 0.6.1 | MIT OR Apache-2.0 | [LICENSE](licenses/android-activity-0.6.1/LICENSE), [LICENSE-APACHE](licenses/android-activity-0.6.1/LICENSE-APACHE), [LICENSE-MIT](licenses/android-activity-0.6.1/LICENSE-MIT) |
@@ -80,8 +81,10 @@ Generated from the verified Cargo.lock resolution, including platform and develo
 | core_maths | 0.1.1 | MIT | [LICENSE](licenses/core_maths-0.1.1/LICENSE) |
 | cosmic-text | 0.15.0 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/cosmic-text-0.15.0/LICENSE-APACHE), [LICENSE-MIT](licenses/cosmic-text-0.15.0/LICENSE-MIT) |
 | cpufeatures | 0.3.1 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/cpufeatures-0.3.1/LICENSE-APACHE), [LICENSE-MIT](licenses/cpufeatures-0.3.1/LICENSE-MIT) |
+| crc32fast | 1.5.3 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/crc32fast-1.5.3/LICENSE-APACHE), [LICENSE-MIT](licenses/crc32fast-1.5.3/LICENSE-MIT) |
 | criterion | 0.5.1 | Apache-2.0 OR MIT | [LICENSE-APACHE](licenses/criterion-0.5.1/LICENSE-APACHE), [LICENSE-MIT](licenses/criterion-0.5.1/LICENSE-MIT) |
 | criterion-plot | 0.5.0 | MIT/Apache-2.0 | [LICENSE-APACHE](licenses/criterion-plot-0.5.0/LICENSE-APACHE), [LICENSE-MIT](licenses/criterion-plot-0.5.0/LICENSE-MIT) |
+| crossbeam-channel | 0.5.17 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/crossbeam-channel-0.5.17/LICENSE-APACHE), [LICENSE-MIT](licenses/crossbeam-channel-0.5.17/LICENSE-MIT), [LICENSE-THIRD-PARTY](licenses/crossbeam-channel-0.5.17/LICENSE-THIRD-PARTY) |
 | crossbeam-deque | 0.8.8 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/crossbeam-deque-0.8.8/LICENSE-APACHE), [LICENSE-MIT](licenses/crossbeam-deque-0.8.8/LICENSE-MIT) |
 | crossbeam-epoch | 0.9.21 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/crossbeam-epoch-0.9.21/LICENSE-APACHE), [LICENSE-MIT](licenses/crossbeam-epoch-0.9.21/LICENSE-MIT) |
 | crossbeam-utils | 0.8.23 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/crossbeam-utils-0.8.23/LICENSE-APACHE), [LICENSE-MIT](licenses/crossbeam-utils-0.8.23/LICENSE-MIT) |
@@ -111,7 +114,9 @@ Generated from the verified Cargo.lock resolution, including platform and develo
 | event-listener | 5.4.2 | Apache-2.0 OR MIT | [LICENSE-APACHE](licenses/event-listener-5.4.2/LICENSE-APACHE), [LICENSE-MIT](licenses/event-listener-5.4.2/LICENSE-MIT) |
 | event-listener-strategy | 0.5.4 | Apache-2.0 OR MIT | [LICENSE-APACHE](licenses/event-listener-strategy-0.5.4/LICENSE-APACHE), [LICENSE-MIT](licenses/event-listener-strategy-0.5.4/LICENSE-MIT) |
 | fastrand | 2.5.0 | Apache-2.0 OR MIT | [LICENSE-APACHE](licenses/fastrand-2.5.0/LICENSE-APACHE), [LICENSE-MIT](licenses/fastrand-2.5.0/LICENSE-MIT) |
+| fdeflate | 0.3.7 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/fdeflate-0.3.7/LICENSE-APACHE), [LICENSE-MIT](licenses/fdeflate-0.3.7/LICENSE-MIT) |
 | find-msvc-tools | 0.1.15 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/find-msvc-tools-0.1.15/LICENSE-APACHE), [LICENSE-MIT](licenses/find-msvc-tools-0.1.15/LICENSE-MIT) |
+| flate2 | 1.1.10 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/flate2-1.1.10/LICENSE-APACHE), [LICENSE-MIT](licenses/flate2-1.1.10/LICENSE-MIT) |
 | fnv | 1.0.7 | Apache-2.0 / MIT | [LICENSE-APACHE](licenses/fnv-1.0.7/LICENSE-APACHE), [LICENSE-MIT](licenses/fnv-1.0.7/LICENSE-MIT) |
 | foldhash | 0.1.5 | Zlib | [LICENSE](licenses/foldhash-0.1.5/LICENSE) |
 | foldhash | 0.2.0 | Zlib | [LICENSE](licenses/foldhash-0.2.0/LICENSE) |
@@ -187,6 +192,7 @@ Generated from the verified Cargo.lock resolution, including platform and develo
 | jni-sys-macros | 0.4.1 | MIT OR Apache-2.0 | See upstream package |
 | jobserver | 0.1.35 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/jobserver-0.1.35/LICENSE-APACHE), [LICENSE-MIT](licenses/jobserver-0.1.35/LICENSE-MIT) |
 | js-sys | 0.3.106 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/js-sys-0.3.106/LICENSE-APACHE), [LICENSE-MIT](licenses/js-sys-0.3.106/LICENSE-MIT) |
+| keyboard-types | 0.8.3 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/keyboard-types-0.8.3/LICENSE-APACHE), [LICENSE-MIT](licenses/keyboard-types-0.8.3/LICENSE-MIT) |
 | khronos-egl | 6.0.0 | MIT/Apache-2.0 | [LICENSE-APACHE](licenses/khronos-egl-6.0.0/LICENSE-APACHE), [LICENSE-MIT](licenses/khronos-egl-6.0.0/LICENSE-MIT) |
 | khronos_api | 3.1.0 | Apache-2.0 | See upstream package |
 | kurbo | 0.10.4 | MIT OR Apache-2.0 | [AUTHORS](licenses/kurbo-0.10.4/AUTHORS), [LICENSE-APACHE](licenses/kurbo-0.10.4/LICENSE-APACHE), [LICENSE-MIT](licenses/kurbo-0.10.4/LICENSE-MIT) |
@@ -208,6 +214,9 @@ Generated from the verified Cargo.lock resolution, including platform and develo
 | memmap2 | 0.9.12 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/memmap2-0.9.12/LICENSE-APACHE), [LICENSE-MIT](licenses/memmap2-0.9.12/LICENSE-MIT) |
 | memoffset | 0.9.1 | MIT | [LICENSE](licenses/memoffset-0.9.1/LICENSE) |
 | metal | 0.32.0 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/metal-0.32.0/LICENSE-APACHE), [LICENSE-MIT](licenses/metal-0.32.0/LICENSE-MIT) |
+| miniz_oxide | 0.8.9 | MIT OR Zlib OR Apache-2.0 | [LICENSE](licenses/miniz_oxide-0.8.9/LICENSE), [LICENSE-APACHE.md](licenses/miniz_oxide-0.8.9/LICENSE-APACHE.md), [LICENSE-MIT.md](licenses/miniz_oxide-0.8.9/LICENSE-MIT.md), [LICENSE-ZLIB.md](licenses/miniz_oxide-0.8.9/LICENSE-ZLIB.md) |
+| miniz_oxide | 0.9.1 | MIT OR Zlib OR Apache-2.0 | [LICENSE](licenses/miniz_oxide-0.9.1/LICENSE), [LICENSE-APACHE.md](licenses/miniz_oxide-0.9.1/LICENSE-APACHE.md), [LICENSE-MIT.md](licenses/miniz_oxide-0.9.1/LICENSE-MIT.md), [LICENSE-ZLIB.md](licenses/miniz_oxide-0.9.1/LICENSE-ZLIB.md) |
+| muda | 0.21.2 | Apache-2.0 OR MIT | [LICENSE-APACHE](licenses/muda-0.21.2/LICENSE-APACHE), [LICENSE-MIT](licenses/muda-0.21.2/LICENSE-MIT), [LICENSE.spdx](licenses/muda-0.21.2/LICENSE.spdx) |
 | naga | 27.0.3 | MIT OR Apache-2.0 | [LICENSE.APACHE](licenses/naga-27.0.3/LICENSE.APACHE), [LICENSE.MIT](licenses/naga-27.0.3/LICENSE.MIT) |
 | ndk | 0.9.0 | MIT OR Apache-2.0 | See upstream package |
 | ndk-context | 0.1.1 | MIT OR Apache-2.0 | See upstream package |
@@ -262,6 +271,7 @@ Generated from the verified Cargo.lock resolution, including platform and develo
 | plotters | 0.3.7 | MIT | [LICENSE](licenses/plotters-0.3.7/LICENSE) |
 | plotters-backend | 0.3.7 | MIT | [LICENSE](licenses/plotters-backend-0.3.7/LICENSE) |
 | plotters-svg | 0.3.7 | MIT | [LICENSE](licenses/plotters-svg-0.3.7/LICENSE) |
+| png | 0.18.1 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/png-0.18.1/LICENSE-APACHE), [LICENSE-MIT](licenses/png-0.18.1/LICENSE-MIT) |
 | polling | 3.11.0 | Apache-2.0 OR MIT | [LICENSE-APACHE](licenses/polling-3.11.0/LICENSE-APACHE), [LICENSE-MIT](licenses/polling-3.11.0/LICENSE-MIT) |
 | pollster | 0.4.0 | Apache-2.0/MIT | [LICENSE-APACHE](licenses/pollster-0.4.0/LICENSE-APACHE), [LICENSE-MIT](licenses/pollster-0.4.0/LICENSE-MIT) |
 | portable-atomic | 1.15.0 | Apache-2.0 OR MIT | [LICENSE-APACHE](licenses/portable-atomic-1.15.0/LICENSE-APACHE), [LICENSE-MIT](licenses/portable-atomic-1.15.0/LICENSE-MIT) |
@@ -322,6 +332,7 @@ Generated from the verified Cargo.lock resolution, including platform and develo
 | serde_repr | 0.1.21 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/serde_repr-0.1.21/LICENSE-APACHE), [LICENSE-MIT](licenses/serde_repr-0.1.21/LICENSE-MIT) |
 | shlex | 2.0.1 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/shlex-2.0.1/LICENSE-APACHE), [LICENSE-MIT](licenses/shlex-2.0.1/LICENSE-MIT) |
 | signal-hook-registry | 1.4.8 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/signal-hook-registry-1.4.8/LICENSE-APACHE), [LICENSE-MIT](licenses/signal-hook-registry-1.4.8/LICENSE-MIT) |
+| simd-adler32 | 0.3.10 | MIT | [LICENSE.md](licenses/simd-adler32-0.3.10/LICENSE.md) |
 | simd_cesu8 | 1.2.0 | Apache-2.0 OR MIT | [LICENSE-APACHE](licenses/simd_cesu8-1.2.0/LICENSE-APACHE), [LICENSE-MIT](licenses/simd_cesu8-1.2.0/LICENSE-MIT) |
 | simdutf8 | 0.1.5 | MIT OR Apache-2.0 | [LICENSE-Apache](licenses/simdutf8-0.1.5/LICENSE-Apache), [LICENSE-MIT](licenses/simdutf8-0.1.5/LICENSE-MIT) |
 | skrifa | 0.37.0 | MIT OR Apache-2.0 | [LICENSE-APACHE](licenses/skrifa-0.37.0/LICENSE-APACHE), [LICENSE-MIT](licenses/skrifa-0.37.0/LICENSE-MIT) |
@@ -454,6 +465,7 @@ Generated from the verified Cargo.lock resolution, including platform and develo
 | zerotrie | 0.2.5 | Unicode-3.0 | [LICENSE](licenses/zerotrie-0.2.5/LICENSE) |
 | zerovec | 0.11.9 | Unicode-3.0 | [LICENSE](licenses/zerovec-0.11.9/LICENSE) |
 | zerovec-derive | 0.11.7 | Unicode-3.0 | [LICENSE](licenses/zerovec-derive-0.11.7/LICENSE) |
+| zlib-rs | 0.6.8 | Zlib | [LICENSE](licenses/zlib-rs-0.6.8/LICENSE) |
 | zmij | 1.0.23 | MIT | [LICENSE-MIT](licenses/zmij-1.0.23/LICENSE-MIT) |
 | zvariant | 5.15.1 | MIT | [LICENSE](licenses/zvariant-5.15.1/LICENSE) |
 | zvariant_derive | 5.15.1 | MIT | [LICENSE](licenses/zvariant_derive-5.15.1/LICENSE) |

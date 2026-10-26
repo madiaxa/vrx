@@ -1,6 +1,7 @@
 //! VRX's GUI-independent document, playback, persistence, and export API.
 #![forbid(unsafe_code)]
 pub mod config;
+pub mod countdown;
 pub mod engine;
 pub mod export;
 pub mod import;

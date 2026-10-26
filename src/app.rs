@@ -1,6 +1,6 @@
 use crate::ui::settings::Number;
 use crate::{
-    message::{Message, Setting},
+    message::{ConfirmKind, Message, Setting},
     ui,
 };
 use iced::{
@@ -34,6 +34,12 @@ pub struct App {
     path: Option<PathBuf>,
     epoch: Instant,
     settings: bool,
+    settings_snapshot: Option<Box<vrx::config::Config>>,
+    popup: Option<Popup>,
+    version_hover: bool,
+    export_picker: u64,
+    #[cfg(target_os = "macos")]
+    native_menu: Option<crate::native_menu::NativeMenu>,
     fields: ui::settings::Fields,
     listening: Option<Action>,
     editor: Option<TextEdit>,
@@ -58,6 +64,19 @@ pub struct App {
     #[cfg(feature = "smoke")]
     native_bench: Option<crate::native_bench::Bench>,
 }
+enum Popup {
+    About,
+    Confirm(ConfirmKind),
+    Export(Box<ExportDraft>),
+}
+struct ExportDraft {
+    config: vrx::config::Config,
+    document: Arc<Document>,
+    error: Option<String>,
+    picking: bool,
+    generation: u64,
+}
+
 struct TextEdit {
     content: Option<iced::widget::text_editor::Content>,
     generation: u64,
@@ -100,8 +119,12 @@ impl App {
         let task = initial
             .map(|p| app.begin_input(Input::Path(p)))
             .unwrap_or_else(Task::none);
+        #[cfg(target_os = "macos")]
+        let task = Task::batch([task, window::latest().map(|_| Message::InstallMenu)]);
         #[cfg(feature = "smoke")]
-        let task = if std::env::var_os("VRX_EDITOR_SMOKE_DIR").is_some() {
+        let task = if std::env::var_os("VRX_REVIEW_DIR").is_some() {
+            Task::batch([task, smoke_after(500, 30)])
+        } else if std::env::var_os("VRX_EDITOR_SMOKE_DIR").is_some() {
             Task::batch([task, smoke_after(500, 20)])
         } else if std::env::var_os("VRX_SMOKE_DIR").is_some() {
             Task::batch([task, smoke_after(500, 0)])
@@ -144,6 +167,12 @@ impl App {
             path: None,
             epoch: Instant::now(),
             settings: false,
+            settings_snapshot: None,
+            popup: None,
+            version_hover: false,
+            export_picker: 0,
+            #[cfg(target_os = "macos")]
+            native_menu: None,
             reading: false,
             fullscreen: false,
             apply_window: WindowAction::None,
@@ -233,6 +262,9 @@ impl App {
         self.saving = true;
         self.last_save = self.now();
         let mut saved = self.saved.clone();
+        if let Some(snapshot) = &self.settings_snapshot {
+            saved.config = (**snapshot).clone();
+        }
         saved.config.sanitize();
         Task::perform(
             async move { persistence::save(&path, &saved) },
@@ -268,7 +300,9 @@ impl App {
             Message::Capture(_, None) => return iced::exit(),
             #[cfg(feature = "smoke")]
             Message::Screenshot(stage, screenshot) => {
-                if let Some(directory) = std::env::var_os("VRX_SMOKE_DIR") {
+                if let Some(directory) =
+                    std::env::var_os("VRX_REVIEW_DIR").or_else(|| std::env::var_os("VRX_SMOKE_DIR"))
+                {
                     let path = PathBuf::from(directory).join(format!("reader-{stage}.ppm"));
                     let mut image = format!(
                         "P6\n{} {}\n255\n",
@@ -286,7 +320,76 @@ impl App {
                 }
                 return smoke_after(300, stage.saturating_add(1));
             }
+            #[cfg(target_os = "macos")]
+            Message::InstallMenu => match crate::native_menu::install() {
+                Ok(menu) => self.native_menu = Some(menu),
+                Err(error) => self.notice = Some(format!("Native menu: {error}")),
+            },
+            Message::About => {
+                self.engine.pause(self.now());
+                self.popup = Some(Popup::About);
+                return unfocus();
+            }
+            Message::VersionHover(hover) => self.version_hover = hover,
+            Message::Quit => {
+                return window::latest().map(|id| match id {
+                    Some(id) => Message::Close(id),
+                    None => Message::Dismiss,
+                });
+            }
+            Message::ClosePopup => {
+                self.popup = None;
+                return unfocus();
+            }
+            Message::RequestConfirm(kind) => {
+                if self.settings {
+                    self.popup = Some(Popup::Confirm(kind));
+                }
+                return unfocus();
+            }
+            Message::Confirm => {
+                if let Some(Popup::Confirm(kind)) = self.popup.take() {
+                    return match kind {
+                        ConfirmKind::Defaults => {
+                            self.restore_preferences(vrx::config::Config::default(), false)
+                        }
+                        ConfirmKind::Discard => {
+                            let config = self
+                                .settings_snapshot
+                                .take()
+                                .map(|c| *c)
+                                .unwrap_or_else(|| self.saved.config.clone());
+                            self.restore_preferences(config, true)
+                        }
+                        ConfirmKind::Keybindings => self.handle(Message::ResetBindings),
+                    };
+                }
+            }
+            Message::AlphabetInput(value) => self.fields.alphabet = value,
+            Message::TernaryInput(value) => self.fields.ternary = value,
+            Message::AlphabetApply => {
+                if self.apply_alphabet() {
+                    return unfocus();
+                }
+            }
+            Message::CountdownPreset(preset) => {
+                let (short, long) = match preset {
+                    1 => ("{seconds}s", "{minutes}m {seconds:02}s"),
+                    2 => ("{seconds} seconds", "{minutes} minutes {seconds} seconds"),
+                    3 => ("{seconds}", "{minutes}:{seconds:02}"),
+                    _ => ("{seconds}s", "{minutes}:{seconds:02}"),
+                };
+                self.saved.config.countdown_short = short.into();
+                self.saved.config.countdown_long = long.into();
+            }
             Message::EditText => {
+                if self.settings {
+                    let task = self.handle(Message::Settings);
+                    if self.settings {
+                        return task;
+                    }
+                    return Task::batch([task, self.handle(Message::EditText)]);
+                }
                 if self.editor.is_some() || self.loading.is_some() {
                     return Task::none();
                 }
@@ -416,10 +519,14 @@ impl App {
                 .round() as usize;
                 self.engine.seek(index, self.now());
             }
-            Message::Open | Message::Picked(_) | Message::Clipboard(_) if self.editor.is_some() => {
+            Message::Open | Message::Picked(_) | Message::Clipboard(_)
+                if self.editor.is_some() || self.popup.is_some() =>
+            {
                 return Task::none();
             }
-            Message::Load(_) if self.editor.is_some() => return Task::none(),
+            Message::Load(_) if self.editor.is_some() || self.popup.is_some() => {
+                return Task::none();
+            }
             Message::Paste if self.editor.is_some() => return Task::none(),
             Message::Open => {
                 return Task::perform(
@@ -535,6 +642,12 @@ impl App {
                 }
             }
             Message::Keyboard(key, modifiers, captured, repeat) => {
+                if self.popup.is_some() {
+                    if key == Key::Named(Named::Escape) && !repeat {
+                        return self.handle(Message::ClosePopup);
+                    }
+                    return Task::none();
+                }
                 if self.editor.is_some() {
                     if key == Key::Named(Named::Escape) && !repeat {
                         return self.handle(Message::CancelEdit);
@@ -547,6 +660,9 @@ impl App {
                     }
                     self.listening = Some(action);
                     return Task::none();
+                }
+                if !captured && let Some(words) = single_word_shortcut(&key, modifiers) {
+                    return self.handle(Message::Jump(words));
                 }
                 if let Some(chord) = key_chord(&key, modifiers)
                     && let Some(action) = self
@@ -561,11 +677,20 @@ impl App {
                 }
             }
             Message::Key(key, modifiers) => {
+                if self.popup.is_some() {
+                    if key == Key::Named(Named::Escape) {
+                        return self.handle(Message::ClosePopup);
+                    }
+                    return Task::none();
+                }
                 if self.editor.is_some() {
                     if key == Key::Named(Named::Escape) {
                         return self.handle(Message::CancelEdit);
                     }
                     return Task::none();
+                }
+                if let Some(words) = single_word_shortcut(&key, modifiers) {
+                    return self.handle(Message::Jump(words));
                 }
                 if let Some(chord) = key_chord(&key, modifiers)
                     && let Some(action) = self
@@ -631,10 +756,30 @@ impl App {
                 self.listening = None;
             }
             Message::Settings => {
+                self.popup = None;
                 if self.settings {
                     // Resolve every editable field before leaving Personalize.
-                    if !self.apply_radix(true) {
+                    if !self.apply_alphabet() || !self.apply_radix(true) {
                         return Task::none();
+                    }
+                    let format_validation = vrx::countdown::validate(
+                        &self.saved.config.countdown_short,
+                    )
+                    .and_then(|_| vrx::countdown::validate(&self.saved.config.countdown_long));
+                    if let Err(error) = format_validation {
+                        self.fields.notice = Some(error);
+                        return Task::none();
+                    }
+                    for color in [
+                        &self.saved.config.foreground,
+                        &self.saved.config.background,
+                        &self.saved.config.accent,
+                        &self.saved.config.warning,
+                    ] {
+                        if !vrx::config::valid_rgb(color) {
+                            self.fields.notice = Some("Colors require six RGB hex digits".into());
+                            return Task::none();
+                        }
                     }
                     if let Err(error) = vrx::export::background(&self.saved.config) {
                         self.fields.notice = Some(error);
@@ -647,6 +792,10 @@ impl App {
                         return Task::none();
                     }
                     for number in Number::ALL {
+                        if number == Number::SideOpacity && !self.saved.config.focal_enabled {
+                            self.fields.refresh(number, &self.saved.config);
+                            continue;
+                        }
                         if !self.apply_number(number, true) {
                             return Task::none();
                         }
@@ -661,17 +810,25 @@ impl App {
                     self.saved.config.sanitize();
                     self.fields = ui::settings::Fields::new(&self.saved.config);
                     self.settings = false;
+                    self.settings_snapshot = None;
                     self.listening = None;
                     return self.save();
                 }
+                self.settings_snapshot = Some(Box::new(self.saved.config.clone()));
                 self.settings = true;
                 self.reading = false;
                 self.fields = ui::settings::Fields::new(&self.saved.config);
             }
             Message::Set(setting) => return self.setting(setting),
             Message::Reading => {
+                if self.settings {
+                    let task = self.handle(Message::Settings);
+                    if !self.settings {
+                        self.reading = !self.reading;
+                    }
+                    return task;
+                }
                 self.reading = !self.reading;
-                self.settings = false;
             }
             Message::Fullscreen => {
                 self.fullscreen = !self.fullscreen;
@@ -692,35 +849,75 @@ impl App {
                 WindowAction::None => {}
             },
             Message::Export => {
-                if self.exporting.is_some() {
+                if self.exporting.is_some() || self.engine.document().is_empty() {
                     return Task::none();
                 }
-                return Task::perform(
-                    async {
-                        rfd::AsyncFileDialog::new()
-                            .set_file_name("reading.ass")
-                            .add_filter("Timed vector subtitles", &["ass"])
-                            .add_filter("SubRip subtitles", &["srt"])
-                            .add_filter("MP4 (requires FFmpeg)", &["mp4"])
-                            .save_file()
-                            .await
-                            .map(|p| p.path().to_owned())
-                    },
-                    Message::ExportPath,
-                );
+                self.engine.pause(self.now());
+                self.export_picker = self.export_picker.wrapping_add(1);
+                self.popup = Some(Popup::Export(Box::new(ExportDraft {
+                    config: self.saved.config.clone(),
+                    document: self.engine.document().clone(),
+                    error: None,
+                    picking: false,
+                    generation: self.export_picker,
+                })));
+                return unfocus();
             }
-            Message::ExportPath(Some(path)) => {
+            Message::ExportBackground(color) => {
+                if let Some(Popup::Export(draft)) = &mut self.popup {
+                    draft.config.export_background = color;
+                }
+            }
+            Message::ChooseExport => {
+                if let Some(Popup::Export(draft)) = &mut self.popup {
+                    if draft.picking {
+                        return Task::none();
+                    }
+                    if let Err(error) = vrx::export::background(&draft.config) {
+                        draft.error = Some(error);
+                        return Task::none();
+                    }
+                    draft.picking = true;
+                    draft.error = None;
+                    let generation = draft.generation;
+                    return Task::perform(
+                        async {
+                            rfd::AsyncFileDialog::new()
+                                .set_file_name("reading.ass")
+                                .add_filter("Timed vector subtitles", &["ass"])
+                                .add_filter("SubRip subtitles", &["srt"])
+                                .add_filter("MP4 (requires FFmpeg)", &["mp4"])
+                                .save_file()
+                                .await
+                                .map(|p| p.path().to_owned())
+                        },
+                        move |path| Message::ExportPath(generation, path),
+                    );
+                }
+            }
+            Message::ExportPath(generation, path) => {
+                if !matches!(&self.popup,Some(Popup::Export(d)) if d.generation==generation) {
+                    return Task::none();
+                }
+                let Some(path) = path else {
+                    if let Some(Popup::Export(draft)) = &mut self.popup {
+                        draft.picking = false;
+                    }
+                    return Task::none();
+                };
                 if self.exporting.is_some() {
                     return Task::none();
                 }
-                let cancel = Arc::new(AtomicBool::new(false));
-                self.exporting = Some(cancel.clone());
-                let document = self.engine.document().clone();
-                let config = self.saved.config.clone();
-                return Task::perform(
-                    async move { vrx::export::export(&document, &config, &path, &cancel) },
-                    Message::Exported,
-                );
+                if let Some(Popup::Export(draft)) = self.popup.take() {
+                    let cancel = Arc::new(AtomicBool::new(false));
+                    self.exporting = Some(cancel.clone());
+                    let document = draft.document;
+                    let config = draft.config;
+                    return Task::perform(
+                        async move { vrx::export::export(&document, &config, &path, &cancel) },
+                        Message::Exported,
+                    );
+                }
             }
             Message::Exported(result) => {
                 self.exporting = None;
@@ -770,7 +967,7 @@ impl App {
                 self.notice = None;
                 self.fields.notice = None;
             }
-            Message::Picked(None) | Message::ExportPath(None) | Message::WindowAction(None) => {}
+            Message::Picked(None) | Message::WindowAction(None) => {}
         }
         Task::none()
     }
@@ -797,6 +994,7 @@ impl App {
             Action::Paste => Message::Paste,
             Action::Export => Message::Export,
             Action::Edit => Message::EditText,
+            Action::About => Message::About,
             Action::ExitFullscreen => {
                 self.fullscreen = false;
                 self.apply_window = WindowAction::Fullscreen;
@@ -811,10 +1009,64 @@ impl App {
                 .set_timing(self.saved.config.timing.clone(), self.now());
         }
     }
+    fn apply_alphabet(&mut self) -> bool {
+        let validation = vrx::numerals::validate_alphabet(
+            &self.fields.alphabet,
+            usize::from(self.saved.config.radix),
+            60,
+        )
+        .and_then(|_| vrx::numerals::validate_alphabet(&self.fields.ternary, 3, 3));
+        if let Err(error) = validation {
+            self.fields.notice = Some(error);
+            return false;
+        }
+        let changed = self.saved.config.numeral_alphabet != self.fields.alphabet
+            || self.saved.config.ternary_alphabet != self.fields.ternary;
+        self.saved.config.numeral_alphabet = self.fields.alphabet.clone();
+        self.saved.config.ternary_alphabet = self.fields.ternary.clone();
+        if changed {
+            for number in Number::ALL {
+                self.fields.refresh(number, &self.saved.config);
+            }
+        }
+        self.fields.notice = None;
+        true
+    }
+    fn restore_preferences(
+        &mut self,
+        mut config: vrx::config::Config,
+        close: bool,
+    ) -> Task<Message> {
+        config.sanitize();
+        let reindex = config.orp != self.saved.config.orp;
+        let playing = self.engine.state() == State::Playing;
+        let index = self.engine.index();
+        self.saved.config = config;
+        self.sync_timing();
+        self.fields = ui::settings::Fields::new(&self.saved.config);
+        self.listening = None;
+        if close {
+            self.settings = false;
+            self.settings_snapshot = None;
+        }
+        let task = if reindex {
+            self.begin_input(Input::Reindex { index, playing })
+        } else {
+            Task::none()
+        };
+        if close {
+            Task::batch([task, self.save()])
+        } else {
+            task
+        }
+    }
     fn apply_radix(&mut self, explicit: bool) -> bool {
         let parsed = self.fields.radix.trim().parse::<u8>();
         match parsed {
-            Ok(radix) if (2..=60).contains(&radix) => {
+            Ok(radix)
+                if (2..=60).contains(&radix)
+                    && self.saved.config.numeral_alphabet.chars().count() >= usize::from(radix) =>
+            {
                 if self.saved.config.radix != radix {
                     self.saved.config.radix = radix;
                     for number in Number::ALL {
@@ -829,7 +1081,7 @@ impl App {
             }
             _ => {
                 if explicit {
-                    self.fields.notice = Some("Enter a decimal radix from 2 through 60".into());
+                    self.fields.notice = Some("Enter a decimal radix from 2 through 60, with at least that many numeral symbols".into());
                 }
                 false
             }
@@ -888,7 +1140,12 @@ impl App {
         match setting {
             Setting::Appearance(v) => config.appearance = v,
             Setting::Font(v) => config.font = v,
-            Setting::Focal(v) => config.focal_enabled = v,
+            Setting::Focal(v) => {
+                config.focal_enabled = v;
+                if !v {
+                    self.fields.refresh(Number::SideOpacity, config);
+                }
+            }
             Setting::Radix(v) => {
                 config.radix = v.clamp(2, 60);
                 self.fields = ui::settings::Fields::new(config);
@@ -917,6 +1174,9 @@ impl App {
             Setting::Background(v) => config.background = v,
             Setting::ExportBackground(v) => config.export_background = v,
             Setting::Accent(v) => config.accent = v,
+            Setting::Warning(v) => config.warning = v,
+            Setting::CountdownShort(v) => config.countdown_short = v,
+            Setting::CountdownLong(v) => config.countdown_long = v,
             Setting::Diagnostics(v) => config.diagnostics = v,
             Setting::Minimal(v) => config.minimal_playback = v,
         }
@@ -943,6 +1203,8 @@ impl App {
             )),
             _ => None,
         });
+        #[cfg(target_os = "macos")]
+        let events = Subscription::batch([events, crate::native_menu::subscription()]);
         let timer = self
             .engine
             .ticket()
@@ -967,8 +1229,23 @@ impl App {
     pub fn view(&self) -> Element<'_, Message> {
         iced::widget::responsive(|size| {
             let base = self.view_sized(size);
-            if self.editor.is_some() {
+            let base = if self.editor.is_some() {
                 self.editor_view(base, size)
+            } else {
+                base
+            };
+            if let Some(popup) = &self.popup {
+                let body = match popup {
+                    Popup::About => ui::popups::about(),
+                    Popup::Confirm(kind) => ui::popups::confirm(*kind, &self.saved.config),
+                    Popup::Export(draft) => ui::popups::export(
+                        &draft.config,
+                        draft.error.as_deref(),
+                        draft.picking,
+                        size,
+                    ),
+                };
+                ui::popups::modal(base, body, size)
             } else {
                 base
             }
@@ -1033,9 +1310,10 @@ impl App {
             focus: (start, end, whole),
             config: c,
             centered: hidden,
+            mode: ui::reader::Mode::Reading,
             editing_anchor: self.settings && !hidden,
             epoch: self.epoch,
-            submission: self.submission.clone(),
+            submission: Some(self.submission.clone()),
         };
         if hidden {
             return reader.into();
@@ -1054,7 +1332,18 @@ impl App {
         let (_, _, accent) = ui::theme::palette(c);
         let brand = row![
             text("VRX").size(24).color(accent),
-            text(vrx::VERSION).size(11)
+            iced::widget::mouse_area(
+                button(
+                    iced::widget::rich_text([iced::widget::span::<(), iced::Font>(vrx::VERSION)
+                        .underline(self.version_hover)])
+                    .size(11)
+                )
+                .style(button::text)
+                .padding(3)
+                .on_press(Message::About)
+            )
+            .on_enter(Message::VersionHover(true))
+            .on_exit(Message::VersionHover(false))
         ]
         .spacing(10)
         .align_y(iced::Center);
@@ -1109,10 +1398,7 @@ impl App {
         } else {
             0.0
         };
-        let remaining = self
-            .engine
-            .timing()
-            .remaining(document, self.engine.index());
+        let remaining = self.engine.estimated_remaining(self.now());
         main = main.push(slider(0.0..=1.0, progress, Message::Seek).step(0.0001));
         main = main.push(
             row![
@@ -1129,9 +1415,8 @@ impl App {
                 .size(12)
                 .width(Length::Fill),
                 text(format!(
-                    "~{}:{}s remaining",
-                    n.integer(i128::from(remaining.as_secs() / 60)),
-                    n.integer(i128::from(remaining.as_secs() % 60))
+                    "{} remaining",
+                    vrx::countdown::remaining(remaining, c)
                 ))
                 .font(ui::settings::NUMBER_FONT)
                 .size(12)
@@ -1266,6 +1551,53 @@ fn smoke_after(milliseconds: u64, stage: u8) -> Task<Message> {
 impl App {
     fn smoke(&mut self, stage: u8) -> Task<Message> {
         match stage {
+            30 => {
+                let task = self.handle(Message::Settings);
+                Task::batch([task, smoke_after(250, 31)])
+            }
+            31 | 33 | 35 | 37 | 39 | 41 => {
+                window::latest().map(move |id| Message::Capture(stage, id))
+            }
+            32 => {
+                let task = self.handle(Message::RequestConfirm(ConfirmKind::Defaults));
+                Task::batch([task, smoke_after(200, 33)])
+            }
+            34 => {
+                let task = self.handle(Message::About);
+                Task::batch([task, smoke_after(200, 35)])
+            }
+            36 => {
+                let _ = self.handle(Message::ClosePopup);
+                let task = self.handle(Message::Export);
+                Task::batch([task, smoke_after(200, 37)])
+            }
+            38 => {
+                let _ = self.handle(Message::ClosePopup);
+                let _ = self.handle(Message::Settings);
+                self.reading = true;
+                self.engine.seek(3, self.now());
+                self.saved.config.side_opacity_percent = 40;
+                smoke_after(200, 39)
+            }
+            40 => {
+                self.engine.seek(8, self.now());
+                smoke_after(200, 41)
+            }
+            42 => {
+                if let Some(directory) = std::env::var_os("VRX_REVIEW_DIR") {
+                    #[cfg(target_os = "macos")]
+                    let menu_installed = self.native_menu.is_some();
+                    #[cfg(not(target_os = "macos"))]
+                    let menu_installed = false;
+                    let value = serde_json::json!({"version":vrx::VERSION,"native_menu_installed":menu_installed,
+                        "final_word":self.engine.document().word(self.engine.index()),"focus":self.reading});
+                    if let Ok(bytes) = serde_json::to_vec_pretty(&value) {
+                        let _ = std::fs::write(PathBuf::from(directory).join("review.json"), bytes);
+                    }
+                }
+                iced::exit()
+            }
+
             20 => Task::batch([self.handle(Message::EditText), smoke_after(1000, 21)]),
             21 => {
                 let prefilled = self
@@ -1434,6 +1766,17 @@ fn unfocus() -> Task<Message> {
     iced::advanced::widget::operate(iced::advanced::widget::operation::focusable::unfocus())
 }
 
+fn single_word_shortcut(key: &Key, modifiers: keyboard::Modifiers) -> Option<i64> {
+    if !(modifiers.control() || modifiers.logo()) || modifiers.alt() || modifiers.shift() {
+        return None;
+    }
+    match key {
+        Key::Named(Named::ArrowLeft) => Some(-1),
+        Key::Named(Named::ArrowRight) => Some(1),
+        _ => None,
+    }
+}
+
 fn key_chord(key: &Key, modifiers: keyboard::Modifiers) -> Option<Chord> {
     let key = match key.as_ref() {
         Key::Named(Named::Shift | Named::Control | Named::Alt | Named::Super | Named::Meta) => {
@@ -1456,7 +1799,7 @@ fn key_chord(key: &Key, modifiers: keyboard::Modifiers) -> Option<Chord> {
 pub fn run(path: Option<PathBuf>) -> iced::Result {
     iced::application(move || App::boot(path.clone()), App::update, App::view)
         .title(App::title)
-        .font(include_bytes!("../assets/ClocketteMono-Regular.ttf").as_slice())
+        .font(include_bytes!("../assets/AxaMono-Regular.ttf").as_slice())
         .scale_factor(|app: &App| app.saved.config.gui_scale())
         .theme(App::theme)
         .subscription(App::subscription)
@@ -1751,6 +2094,57 @@ mod tests {
             Ok(Document::default().shared()),
         ));
         assert_eq!(app.engine.state(), State::Empty);
+        Ok(())
+    }
+    #[test]
+    fn revision_discard_defaults_modal_and_export_are_isolated() -> vrx::Result<()> {
+        let mut app = app()?;
+        let original = app.saved.config.timing.wpm;
+        let _ = app.update(Message::Settings);
+        let _ = app.update(Message::NumberInput(Number::Wpm, "650".into()));
+        let _ = app.update(Message::Set(Setting::Warning("FF0000".into())));
+        let _ = app.update(Message::RequestConfirm(ConfirmKind::Discard));
+        assert!(matches!(
+            app.popup,
+            Some(Popup::Confirm(ConfirmKind::Discard))
+        ));
+        let _ = app.update(Message::Confirm);
+        assert_eq!(app.engine.timing().wpm, original);
+        assert!(!app.settings);
+        assert!(app.settings_snapshot.is_none());
+        let _ = app.update(Message::Settings);
+        let _ = app.update(Message::RequestConfirm(ConfirmKind::Defaults));
+        let _ = app.update(Message::ClosePopup);
+        assert_eq!(app.saved.config.jump_words, 3);
+        let _ = app.update(Message::RequestConfirm(ConfirmKind::Defaults));
+        let _ = app.update(Message::Confirm);
+        assert_eq!(app.saved.config.jump_words, 10);
+        assert!(app.settings);
+        let _ = app.update(Message::Settings);
+        let background = app.saved.config.export_background.clone();
+        let _ = app.update(Message::Export);
+        let _ = app.update(Message::ExportBackground("123456".into()));
+        assert_eq!(app.saved.config.export_background, background);
+        assert!(
+            matches!(&app.popup,Some(Popup::Export(d)) if d.config.export_background=="123456")
+        );
+        let _ = app.update(Message::ClosePopup);
+        let _ = app.update(Message::ExportPath(1, Some(PathBuf::from("late.ass"))));
+        assert!(app.exporting.is_none());
+        Ok(())
+    }
+    #[test]
+    fn revision_command_arrows_always_move_one_word_and_keep_playing() -> vrx::Result<()> {
+        let mut app = app()?;
+        let _ = app.update(Message::Toggle);
+        let _ = app.update(Message::Jump(12));
+        for modifier in [keyboard::Modifiers::CTRL, keyboard::Modifiers::LOGO] {
+            let _ = app.update(Message::Key(Key::Named(Named::ArrowLeft), modifier));
+            assert_eq!(app.engine.index(), 11);
+            assert_eq!(app.engine.state(), State::Playing);
+            let _ = app.update(Message::Key(Key::Named(Named::ArrowRight), modifier));
+            assert_eq!(app.engine.index(), 12);
+        }
         Ok(())
     }
 }

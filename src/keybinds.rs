@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 pub enum Action {
     Toggle,
     Edit,
+    About,
     Backward,
     Forward,
     PreviousWord,
@@ -27,9 +28,10 @@ pub enum Action {
     ExitFullscreen,
 }
 impl Action {
-    pub const ALL: [Self; 20] = [
+    pub const ALL: [Self; 21] = [
         Self::Toggle,
         Self::Edit,
+        Self::About,
         Self::Backward,
         Self::Forward,
         Self::PreviousWord,
@@ -53,6 +55,7 @@ impl Action {
         match self {
             Self::Toggle => "Play / pause",
             Self::Edit => "Edit current text",
+            Self::About => "About VRX",
             Self::Backward => "Jump backward",
             Self::Forward => "Jump forward",
             Self::PreviousWord => "Previous word",
@@ -197,6 +200,13 @@ where
         }
         let action =
             Action::deserialize(serde::de::value::StringDeserializer::<D::Error>::new(name))?;
+        let chord = match (action, chord.as_str()) {
+            (Action::PreviousSentence, "CmdOrCtrl+Left") => "CmdOrCtrl+Shift+Left".into(),
+            (Action::NextSentence, "CmdOrCtrl+Right") => "CmdOrCtrl+Shift+Right".into(),
+            (Action::PreviousWord, "Shift+Left") => "CmdOrCtrl+Left; Shift+Left".into(),
+            (Action::NextWord, "Shift+Right") => "CmdOrCtrl+Right; Shift+Right".into(),
+            _ => chord,
+        };
         bindings.insert(action, chord);
     }
     Ok(bindings)
@@ -208,12 +218,13 @@ impl Default for Keymap {
         let pairs = [
             (Toggle, "Space"),
             (Edit, "CmdOrCtrl+N"),
+            (About, "CmdOrCtrl+I"),
             (Backward, "Left"),
             (Forward, "Right"),
-            (PreviousWord, "Shift+Left"),
-            (NextWord, "Shift+Right"),
-            (PreviousSentence, "CmdOrCtrl+Left"),
-            (NextSentence, "CmdOrCtrl+Right"),
+            (PreviousWord, "CmdOrCtrl+Left; Shift+Left"),
+            (NextWord, "CmdOrCtrl+Right; Shift+Right"),
+            (PreviousSentence, "CmdOrCtrl+Shift+Left"),
+            (NextSentence, "CmdOrCtrl+Shift+Right"),
             (PreviousParagraph, "Alt+Left"),
             (NextParagraph, "Alt+Right"),
             (SpeedUp, "Up"),
@@ -253,6 +264,20 @@ impl Keymap {
             .split(';')
             .map(Chord::parse)
             .collect::<Result<Vec<_>>>()?;
+        for chord in &chords {
+            let reserved = !chord.shift
+                && !chord.alt
+                && (chord.ctrl || chord.logo || chord.command)
+                && matches!(chord.key.as_str(), "Left" | "Right");
+            if reserved
+                && !matches!(
+                    (action, chord.key.as_str()),
+                    (Action::PreviousWord, "Left") | (Action::NextWord, "Right")
+                )
+            {
+                return Err("Cmd/Ctrl + Left/Right are reserved for one-word navigation".into());
+            }
+        }
         for (other, label) in &self.bindings {
             if *other == action {
                 continue;

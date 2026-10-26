@@ -26,3 +26,7 @@ Use at least 1,000 transitions per speed for p50/p95/p99 estimates; the historic
 8. Check progress recovery, corrupt settings, native dialogs/clipboard/drop, export cancellation, missing FFmpeg and video-editor import. Native linking does not certify desktop rendering or screen-reader integration.
 
 No latest performance target, cross-platform runtime, extended soak or zero-allocation GUI claim is made without new measurements.
+
+## Latest inspection and UI validation
+
+The latest revision reuses each word's focal-span bounds instead of querying them twice, and hoists invariant ASS color conversions out of the per-word loop. These remove known repeated allocations in the source; no measured throughput improvement is claimed. Native dialog rendering and fixed-guide geometry were inspected on the development Mac, with nine focused tests and a FreeBSD cross-target check. Historical timing baselines above remain unchanged.

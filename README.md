@@ -1,85 +1,75 @@
-# VRX
+<h1 align="center">VRX <small>v0.0.1</small></h1>
+<p align="center"><strong>Visual Reader X — Read Rapidly</strong></p>
+<p>A native Rust and Iced 0.14 RSVP reader for text and Markdown. Words use a shaped focal anchor, monotonic deadlines, and an event-driven interface. There is no embedded browser, document telemetry, or recurring idle playback timer. The supplied artwork is the application icon.</p>
 
-Read Rapidly. A native Rust / Iced 0.14 RSVP reader for text and Markdown. Normal reading can use a stable focal anchor; focus mode centers the whole word. No browser, network service, document telemetry, or recurring idle timer. The supplied artwork is the application icon; branding within the reading interface is text only.
+<h2>Get started</h2>
+<p>Extract the macOS archive in a local folder, move <code>VRX.app</code> to Applications, and open it. The macOS app uses local ad-hoc signing, not public notarization. For source builds, platform dependencies, FreeBSD, packaging, and GitHub release workflows, see <a href="docs/RELEASE.md">the release guide</a>.</p>
+<p>Choose <strong>Open</strong>, drop a UTF-8 text/Markdown file onto the window, or use the <strong>pencil</strong> to edit the current reading text. The sample is already filled in. <strong>Paste</strong> inserts at the editor's selection; <strong>Clear text</strong> clears the draft. <strong>Apply changes</strong> starts changed text at the beginning. Cancel preserves the reading document and position. Original input files are never overwritten.</p>
+<p>Press <strong>Space</strong> to read. In focus mode, the highlighted grapheme stays at the screen's center. With the focal point disabled, the whole word is centered instead. Long words and guides shrink together to fit the available area.</p>
 
-## Run
+<h2>Controls</h2>
+<table>
+<thead><tr><th>Default shortcut</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>Space</td><td>Play / pause; replay a finished document</td></tr>
+<tr><td>Left / Right</td><td>Jump by the configured count, matching the arrow buttons</td></tr>
+<tr><td>Cmd or Ctrl + Left / Right</td><td>Always move exactly one word while retaining playback</td></tr>
+<tr><td>Shift + Left / Right</td><td>Previous / next word (alternate)</td></tr>
+<tr><td>Cmd/Ctrl + Shift + Left / Right</td><td>Previous / next sentence start</td></tr>
+<tr><td>Alt/Option + Left / Right</td><td>Previous / next paragraph start</td></tr>
+<tr><td>Up / Down</td><td>Change speed by the configured WPM step without stopping</td></tr>
+<tr><td>R</td><td>Restart, preserving active playback</td></tr>
+<tr><td>H</td><td>Toggle focus mode</td></tr>
+<tr><td>Escape or Cmd/Ctrl + comma</td><td>Open / finish Personalize; Escape closes the active popup</td></tr>
+<tr><td>F11 / Shift + F11</td><td>Toggle / exit fullscreen</td></tr>
+<tr><td>Cmd/Ctrl + O / V / E / N</td><td>Open / paste / export / edit text</td></tr>
+<tr><td>Cmd/Ctrl + I</td><td>About VRX</td></tr>
+</tbody>
+</table>
+<p>Shortcuts can be recorded, edited, or cleared in Personalize. Cmd/Ctrl + Left/Right are reserved for single-word navigation outside editable controls. Normal text-editing keys work inside inputs. Click the version number for About, or use <strong>About VRX</strong> in the macOS application menu.</p>
 
-For the packaged Apple Silicon app, extract the release zip in a local folder, move `VRX.app` to Applications, and open it. The app is locally signed, not publicly notarized. Use the included CLI binary at `VRX.app/Contents/MacOS/VRX` for agent commands.
+<h2>Personalize</h2>
+<ul>
+<li>Set nominal WPM, adaptive pauses, jump count, and speed step. Numeric fields support direct entry.</li>
+<li>Choose a reading font, weight and size up to 360 px, with a live miniature preview. Interface text size is independent.</li>
+<li>Drag the focal anchor. Choose Classic, 40 percent, Center, or First grapheme. Center uses the left middle grapheme for even-length words; Classic uses 40 percent for its long-word branch.</li>
+<li>Customize focal color, guide shape, size and gap. Side-letter opacity is adjustable when focal highlighting is on, with full opacity retained for whole-word shaping fallbacks.</li>
+<li>Choose dark, light, high-contrast or custom colors. Every color input has a swatch. The warning color identifies destructive confirmation buttons.</li>
+<li>Use <strong>Discard changes</strong> to restore the snapshot from when the menu opened, or <strong>Restore all defaults</strong> to preview default preferences. Both require confirmation. Done validates and saves; reading text and recent documents are kept.</li>
+</ul>
 
-To build from source or produce releases through GitHub, use [RELEASE.md](docs/RELEASE.md), covering macOS, Linux, Windows, and FreeBSD. Development uses Rust 1.99+ and locked Iced 0.14 dependencies. On all release (non-nightly) versions, all tests were run on FreeBSD, macOS, Windows, and Linux, and all were successful. The latest ClearText, slider, and focal-guide changes passed three focused regression tests and a native release build; the full suite and GUI smoke tests were not rerun.
+<h3>Numbers and countdown</h3>
+<p>Choose a decimal radix from 2 through 60. The default digit alphabet is <code>0123456789↊↋ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuv</code>. Change the symbols directly in Personalize and apply them; symbols must be unique and cannot use reserved punctuation. Balanced ternary has a separate three-symbol alphabet in negative-one, zero, positive-one order, initially <code>T01</code>.</p>
+<p>Fractional sliders advance in one fractional digit of the chosen base, rounded to the nearest stored thousandth. Typed pause weights keep thousandth precision. Changing notation alone does not change the actual speed or duration. JSON/CLI values, RGB hex, filenames, versions and subtitle timestamps retain their established notation. Axa Mono, bundled under the SIL Open Font License, displays numeric controls.</p>
+<p>The default countdown shows <code>6s remaining</code> below a minute and <code>5:04 remaining</code> above it. Choose clock, short labels, words, or no labels, or edit separate short/long templates. Available placeholders are <code>{minutes}</code>, <code>{seconds}</code>, <code>{seconds:02}</code>, and <code>{total_seconds}</code>. Padding uses the selected zero symbol. Completed documents show zero remaining.</p>
 
-Open a UTF-8 `.txt`, `.md`, or `.markdown` file, drop it onto the window, or click the **✎ pencil between Open and Export** to edit the current reading text in an in-window pop-up. The welcome sample is already filled in. The editor's **Paste** button inserts clipboard text at the cursor or replaces its selection, to the left of **Apply changes**. **Clear text** empties the edit buffer; **Cancel** still keeps the original reading text. **Apply changes** starts changed text at its beginning; **Cancel** (or Escape) keeps the original text and position. Editing pauses playback and never overwrites an imported file. Press **Space** to start reading! In **Personalize**, adjust nominal WPM, adaptive pauses, font, RSVP type size up to 360 px, independent GUI text size, weight, draggable word position, colors, jump size, speed step, radix, and every reader shortcut. The dark, light, contrast, and custom color presets are saved. Start at a comfortable pace; speed is a preference, not a goal.
+<h2>Timing and text</h2>
+<p>Constant mode uses 60/WPM seconds per token. Adaptive mode uses the largest applicable multiplier, without multiplying pauses together. Independent pauses cover long words, commas, colons, semicolons, quotes, brackets, dashes, sentences and paragraphs, with an optional extra section pause.</p>
+<p>The default Preserve every word policy extends the schedule after a genuine stall. Maintain pace explicitly permits skipping expired words and reports the count. Pause retains the current word and remaining interval; speed changes preserve the interval fraction.</p>
+<p>Slashes and em dashes terminate a token while staying attached: <code>true/false—maybe</code> becomes <code>true/</code>, <code>false—</code>, <code>maybe</code>. Grapheme clusters remain intact. Contextual scripts and unavailable per-grapheme ligature geometry use whole-word fallback. Unspaced languages requiring dictionary segmentation have documented limitations.</p>
+<p>Timer wake, UI dispatch and CPU rendering submission are different from physical presentation. High speeds may exceed a display's refresh capacity. See <a href="docs/PERFORMANCE.md">measurement procedures</a> and <a href="docs/LIMITATIONS.md">known limitations</a>; no unmeasured timing, accessibility or cross-platform guarantee is claimed.</p>
 
-## Controls
+<h2>Export</h2>
+<p>Export opens an in-window preview using the sample <strong>VRX</strong>. Change that export's background and choose an output file. Personalize's <strong>Default export background color</strong> supplies the initial color, independently of the reader theme. The default is opaque chroma green, <code>00FF00</code>.</p>
+<ul>
+<li><strong>ASS:</strong> compact timed text, typography, focal color/opacity and an opaque vector canvas.</li>
+<li><strong>SRT:</strong> portable plain timed text; no background or styling.</li>
+<li><strong>MP4:</strong> 1920×1080, 60 fps, H.264/yuv420p. Requires an external FFmpeg build with libass and libx264; set <code>VRX_FFMPEG</code> if it is not on PATH.</li>
+</ul>
+<p>Exports cover the whole document with the selected timing and whole-word positioning. They do not reproduce desktop guide marks or measured per-grapheme anchoring. ASS timestamps have centisecond resolution; MP4 is frame-quantized. Fonts can differ in video editors.</p>
 
-| Key | Action |
-|---|---|
-| Space | Play / pause; replay a finished document |
-| ← / → | Jump by the configured word count; identical to the arrow buttons |
-| Shift + ← / → | Previous / next single word |
-| Cmd/Ctrl + ← / → | Previous / next sentence start |
-| Alt/Option + ← / → | Previous / next paragraph start |
-| ↑ / ↓ | Change WPM by the configured step without stopping |
-| R | Restart; keep playing if already playing |
-| H | Toggle focus mode; center the whole RSVP word in the window |
-| Escape | Open / close Personalize (including from focus mode) |
-| F11 | Toggle fullscreen |
-| Shift + F11 | Exit fullscreen |
-| Cmd/Ctrl + O / V / E | Open / paste / export |
-| Cmd/Ctrl + N | Edit current text in the in-window pop-up |
-| Cmd/Ctrl + , | Personalize (alternate) |
-
-Every application shortcut can be changed or cleared in **Personalize → Keybindings**. Type a chord and press Enter (separate alternatives with `;`), or click Record and press the combination. Conflicts are reported; clear the old assignment first. Restore defaults is always available. Standard text-field editing keys retain their normal behavior while typing. Inside the text editor, Enter adds a line, Escape cancels, and reader shortcuts are suspended. Fullscreen and focus remain keyboard actions. The Maximize binding has been removed; old saved entries are ignored when loading settings.
-
-Disable **Enable focal point / ORP highlight** to remove both the accent character and guide marks. The whole word is then centered at the selected position. Drag the target in Personalize's two-dimensional pad, or drag directly in the reading area when the panel is alongside it. Positions can also be entered numerically as percentages. Focus mode ignores the saved position and centers the complete word without changing that preference. Choose **Ticks**, **Dots**, or **Lines**, adjust guide size and gap, and enter a focal RGB hex color (empty follows the theme accent). The color applies to ORP and guides. Guide dimensions and spacing follow the reading font, independently of GUI text size, and shrink together with words that need to fit. Focal color also applies to ASS/MP4 highlighting; guide shapes remain desktop-only.
-
-Click any numeric field to edit it, including pause multipliers, positions, font sizes, step counts and WPM. Valid values apply as you type; Enter validates and finishes editing, and Done validates and saves the menu. The GUI text-size setting scales interface text and controls while compensating RSVP font measurements, so it does not change the word's requested reading size.
-
-**Number systems:** choose base 2–60. Numeric GUI values and inputs use the AxaSuite's preliminary alphabet `0123456789↊↋ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuv`; base 3 always uses balanced ternary `T`, `0`, `1` (`1T` means decimal two). Fractional pause multipliers use the selected base too. The radix is a directly editable decimal number field, with no slider or dropdown. RGB hex, release versions, filenames, JSON/CLI machine values and exported subtitle timestamps keep their established notation. Radix changes never change actual WPM or pause duration. Pause sliders step by one fractional digit of the chosen base (for example, one twelfth in base 12); typed values retain thousandth precision. Numeric formatting uses the shortest spelling that preserves that precision, rather than twelve fractional digits. A selected fraction is stored as the nearest thousandth for timing, so nondecimal fractions can have a small rounding error (at most 0.0005 in the multiplier).
-
-Seek with the progress slider. Text inputs capture typing normally; reader shortcuts apply when a text field is not handling the key. Tab navigation of all controls and native screen-reader announcements are limited by this Iced release; see [limitations](docs/LIMITATIONS.md).
-
-## Timing
-
-The tokenizer keeps slash delimiters: `true/false/maybe` reads as `true/`, `false/`, `maybe`. Consecutive or leading slashes remain visible tokens. Slash-based grapheme clusters are kept intact.
-
-Constant mode gives every token `60 / WPM` seconds. Adaptive mode uses the **largest** applicable pause multiplier, rather than multiplying pauses together. Long words start at 1.15×, commas 1.3×, clauses 1.5×, sentence endings 1.8×, and paragraph endings 2×. Independent colon, semicolon, quotation-mark, parentheses/bracket and dash pauses are also editable. A multiplier of 1 adds no pause. Section pauses add the configured number of milliseconds. Effective throughput can therefore be lower than nominal WPM.
-
-Default **Preserve every word** advances one token per accepted deadline. Ordinary wake-up jitter stays on the absolute schedule; if the following word's entire slot expires, the schedule extends. **Maintain pace** explicitly permits skipping expired words and reports the count. It limits catch-up work to 4,096 words before rebasing. Pause retains the word and its remaining interval. Speed changes scale the remaining fraction of the current word; navigation grants the destination a fresh interval.
-
-An OS timer waking is not proof that pixels became visible. GPU submission, compositor behavior, display refresh, and system load add latency. No guaranteed physical presentation time is claimed. [Measured results and repeatable procedures](docs/PERFORMANCE.md) cover both OS deadlines and the actual Iced subscription.
-
-## Export
-
-Choose **Export**, then save `.ass`, `.srt`, or `.mp4`. MP4 and ASS use a full-frame, opaque **00FF00 chroma green** background by default. Set **Personalize → Export → Export background** to another six-digit RGB hex color; it is saved independently of the reader's background and theme. SRT is plain timed text and cannot encode a background.
-
-- **ASS**: compact timed text with typography and ORP color, suitable for subtitle/video tools using libass. It is resolution-independent and cheap to export.
-- **SRT**: widely supported plain timed text; no color or font styling.
-- **MP4**: 1920×1080, 60 fps, H.264, yuv420p. Requires an external FFmpeg build with `libass` and `libx264`. Set `VRX_FFMPEG` to its executable path if it is not on `PATH`. VRX does not install or bundle it.
-
-Exports cover the entire document with the current timing settings, independent of live playback. ASS/MP4 center each complete shaped word at the configured focal position; they do not reproduce the desktop widget's measured per-grapheme anchor. ASS has 10 ms timestamp resolution, SRT 1 ms, and MP4 is quantized to frames. High speeds can exceed their representational limits. See [limitations](docs/LIMITATIONS.md).
-
-## CLI and Rust API
-
-```sh
-vrx --help
+<h2>CLI and agent API</h2>
+<pre><code>vrx --help
 vrx inspect book.md
-vrx export book.md reading.ass 400
 vrx export book.md reading.mp4 400 00FF00
 vrx diagnose 30
-vrx api book.md
-```
+vrx api book.md</code></pre>
+<p>Inspection, diagnostics, export completion and the JSON-lines agent protocol use machine-readable output. The API has a deterministic virtual clock and does not remotely control a running GUI. See <a href="docs/API.md">the API guide</a> and <a href="examples/headless.rs">the Rust example</a>. Python is used for release packaging and optional icon generation, not application runtime.</p>
 
-`inspect`, `diagnose`, export completion, and the agent protocol produce JSON on stdout. Errors go to stderr and return a failing exit code. The agent API uses a deterministic virtual clock; it does not remote-control a running GUI. See [API reference](docs/API.md) and [library example](examples/headless.rs).
+<h2>Privacy and persistence</h2>
+<p>Versioned settings store preferences and up to 16 recent paths, fingerprints and token positions in the platform configuration directory. Document content and editor drafts are never stored there. Export edited text before closing to retain a timed-text copy. Progress is saved on pause, replacement, periodically during playback and on normal close. Reopening a file resumes only when its fingerprint matches. <code>VRX_CONFIG_DIR</code> selects another configuration directory.</p>
+<p>Preferences have live previews, but background saves retain the opening settings snapshot until Done commits it. Saves run off the presentation path and use atomic replacement where supported. Missing/corrupt configuration recovers to defaults with a notice. The editor opening limit is 16 MiB; document import is capped at 512 MiB.</p>
 
-## Privacy and persistence
-
-Settings and the last 16 file paths, fingerprints, and token indices are stored in the platform application configuration directory as versioned JSON. Document contents, clipboard text, and edits made in the pop-up are never saved there. Export edited text before closing if it needs to be retained. Reopening the same file resumes only if its fingerprint matches. Progress is saved on pause, on replacement, every 30 seconds during playback, and on normal close. Forced termination can lose progress since the last save. Export files deliberately contain the reading text.
-
-`VRX_CONFIG_DIR` selects another settings directory. Missing/corrupt settings load defaults and show a notice. Writes run in the background and use same-directory temporary files, fsync, and rename. One save runs at a time, with one coalesced follow-up. Multiple app processes sharing a settings directory use last-writer-wins semantics.
-
-## Contribute
-
-See the [contributor guide](docs/CONTRIBUTING.md), [architecture](docs/ARCHITECTURE.md), [API](docs/API.md), [performance methodology](docs/PERFORMANCE.md), [limitations](docs/LIMITATIONS.md), and [build/release instructions](docs/RELEASE.md). Recoverable failures return errors or show a notice; OS termination, allocator, driver and dependency failures cannot be guaranteed away.
-
-VRX is released under the [Unlicense](LICENSE). Third-party dependencies and bundled fonts retain their own licenses and notices.
+<h2>Contribute and license</h2>
+<p>Read <a href="docs/CONTRIBUTING.md">Contributing</a>, <a href="docs/ARCHITECTURE.md">Architecture</a>, <a href="docs/RELEASE.md">Build and release</a>, and <a href="docs/LIMITATIONS.md">Limitations</a>. Rust application code forbids unsafe and explicit panic/unwrap/expect paths; allocator, OS, driver and dependency failures cannot be guaranteed away.</p>
+<p>VRX's original code uses <a href="LICENSE">the Unlicense</a>. Dependencies retain their own licenses; Axa Mono uses <a href="assets/OFL.txt">the SIL Open Font License</a>. Human release labels use dozenal components with ↊ and ↋; Cargo/OS metadata stays numeric SemVer. This update remains <strong>v0.0.1</strong>.</p>

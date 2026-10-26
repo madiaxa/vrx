@@ -209,3 +209,9 @@ Actions are referenced by maintained release tags. A repository with stricter su
 ## Ubuntu shaping regression
 
 The reported `office has no focus geometry` assertion assumed a separate span rectangle for a single f inside the ffi ligature. Font/shaper combinations may legitimately assign that glyph to a different span. The test now requires geometry for the complete cluster and validates the reader's existing whole-word fallback when an individual span is absent. Only this shaping test was rerun for the fix, passing on the development Mac; an Ubuntu rerun has not been performed locally. No font, dependency or reading behavior was changed.
+
+## Latest UI revision evidence
+
+Version remains v0.0.1. Nine focused tests passed for countdown formatting/custom alphabets, fixed focus anchoring, rollback/defaults/export isolation, command-arrow navigation, ORP/em-dash behavior and prior editor/guide/slider regressions. Strict Clippy and the complete FreeBSD cross-target check passed. A native macOS run rendered Settings, confirmation, About and export-preview dialogs and installed the native menu. Focus screenshots for “an” and “written” had identical guide rectangles: x=1098–1101 at y=620–634 and y=885–899 in a 2200×1520 client image. The alphabet/font rename was visible in the native controls. No Linux/Windows/FreeBSD desktop, native menu click automation, broad soak, new timing benchmark or full-suite rerun is claimed for this update.
+
+The macOS-only muda dependency supplies the application menu; its own licenses remain separate from VRX's Unlicense. Axa Mono is a renamed OFL font with preserved glyphs/metrics and original copyright/license. All README content now uses GitHub-supported HTML.

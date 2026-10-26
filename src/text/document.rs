@@ -98,8 +98,8 @@ impl Document {
                 .find_map(|(offset, grapheme)| {
                     if separator(grapheme) {
                         Some(offset)
-                    } else if grapheme.starts_with('/') {
-                        // Keep the slash and any attached combining marks in
+                    } else if grapheme.starts_with(['/', '—']) {
+                        // Keep the slash/em dash and any attached combining marks in
                         // the preceding token; never cut a grapheme cluster.
                         Some(offset + grapheme.len())
                     } else {

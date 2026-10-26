@@ -124,3 +124,38 @@ fn older_config_loads_new_preferences_and_keeps_version() -> Result<()> {
     assert_eq!(decoded.gui_text_size, 24.0);
     Ok(())
 }
+
+#[test]
+fn revision_export_side_opacity_and_independent_canvas() -> Result<()> {
+    let document = Document::parse("VRX".into(), &Strategy::Classic)?;
+    let mut config = Config {
+        side_opacity_percent: 25,
+        background: "112233".into(),
+        export_background: "00FF00".into(),
+        focal_color: "AA00DD".into(),
+        ..Config::default()
+    };
+    let mut bytes = Vec::new();
+    export::write_timeline(
+        &document,
+        &config,
+        Format::Ass,
+        &mut bytes,
+        &AtomicBool::new(false),
+    )?;
+    let ass = String::from_utf8(bytes).map_err(|e| e.to_string())?;
+    assert!(ass.contains("{\\alpha&HC0&}V{\\alpha&H00&\\c&HDD00AA&}R"));
+    assert!(ass.contains("\\1c&H00FF00&"));
+    config.focal_enabled = false;
+    let mut bytes = Vec::new();
+    export::write_timeline(
+        &document,
+        &config,
+        Format::Ass,
+        &mut bytes,
+        &AtomicBool::new(false),
+    )?;
+    let ass = String::from_utf8(bytes).map_err(|e| e.to_string())?;
+    assert!(!ass.contains("\\alpha&HC0&"));
+    Ok(())
+}

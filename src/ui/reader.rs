@@ -31,21 +31,51 @@ struct Cache {
     font: Font,
     size: f32,
     accent: Color,
+    foreground: Color,
+    opacity: u32,
     focus: (usize, usize, bool),
     center: f32,
     width: f32,
     height: f32,
     drag: Drag,
 }
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
+    Reading,
+    Preview,
+    Export,
+}
 pub struct Reader<'a> {
     pub word: &'a str,
     pub focus: (usize, usize, bool),
     pub config: &'a Config,
     pub centered: bool,
+    pub mode: Mode,
     pub editing_anchor: bool,
     pub epoch: Instant,
     /// Last renderer command submission (not scanout or GPU completion).
-    pub submission: Arc<AtomicU64>,
+    pub submission: Option<Arc<AtomicU64>>,
+}
+
+impl<'a> Reader<'a> {
+    pub fn preview(config: &'a Config, word: &'a str, mode: Mode) -> Self {
+        use vrx::text::orp::OrpAlgorithm;
+        let index = config
+            .orp
+            .index(word.len())
+            .min(word.len().saturating_sub(1));
+        // Preview words supplied by the UI are fixed ASCII strings.
+        Self {
+            word,
+            focus: (index, index + 1, false),
+            config,
+            centered: false,
+            mode,
+            editing_anchor: false,
+            epoch: Instant::now(),
+            submission: None,
+        }
+    }
 }
 
 impl Widget<Message, Theme, Renderer> for Reader<'_> {
@@ -69,24 +99,38 @@ impl Widget<Message, Theme, Renderer> for Reader<'_> {
             cache.drag.active = false;
         }
         let font = super::theme::font(self.config);
-        let effective_size = self.config.font_size / self.config.gui_scale();
+        let effective_size = match self.mode {
+            Mode::Reading => self.config.font_size / self.config.gui_scale(),
+            Mode::Preview => self.config.font_size / self.config.gui_scale() * 0.35,
+            Mode::Export => self.config.font_size * 2.0 * limits.max().height / 1080.0,
+        };
         let focus = (
             self.focus.0,
             self.focus.1,
             self.focus.2 || !self.config.focal_enabled,
         );
         let accent = super::theme::focal_color(self.config);
+        let foreground = super::theme::palette(self.config).1;
+        let opacity = if focus.2 {
+            100
+        } else {
+            self.config.side_opacity_percent.min(100)
+        };
         if cache.word != self.word
             || cache.font != font
             || cache.size != effective_size
             || cache.accent != accent
             || cache.focus != focus
+            || cache.foreground != foreground
+            || cache.opacity != opacity
         {
             self.word.clone_into(&mut cache.word);
             cache.font = font;
             cache.size = effective_size;
             cache.accent = accent;
             cache.focus = focus;
+            cache.foreground = foreground;
+            cache.opacity = opacity;
             let (start, end, whole) = focus;
             let spans: [text::Span<'_, (), Font>; 3] = if whole {
                 [
@@ -96,9 +140,11 @@ impl Widget<Message, Theme, Renderer> for Reader<'_> {
                 ]
             } else {
                 [
-                    text::Span::new(self.word.get(..start).unwrap_or("")),
+                    text::Span::new(self.word.get(..start).unwrap_or(""))
+                        .color(foreground.scale_alpha(opacity as f32 / 100.0)),
                     text::Span::new(self.word.get(start..end).unwrap_or("")).color(accent),
-                    text::Span::new(self.word.get(end..).unwrap_or("")),
+                    text::Span::new(self.word.get(end..).unwrap_or(""))
+                        .color(foreground.scale_alpha(opacity as f32 / 100.0)),
                 ]
             };
             cache.paragraph = Shaped::with_spans(text::Text {
@@ -112,12 +158,34 @@ impl Widget<Message, Theme, Renderer> for Reader<'_> {
                 shaping: text::Shaping::Advanced,
                 wrapping: text::Wrapping::None,
             });
+            // Do not hide a ligature when its focal grapheme has no separate
+            // metadata. Render the complete word at full opacity in that case.
+            let focus_bounds = if whole {
+                Vec::new()
+            } else {
+                cache.paragraph.span_bounds(1)
+            };
+            let missing = !whole && focus_bounds.is_empty();
+            if missing {
+                let spans: [text::Span<'_, (), Font>; 1] = [text::Span::new(self.word)];
+                cache.paragraph = Shaped::with_spans(text::Text {
+                    content: &spans,
+                    bounds: Size::new(100_000.0, effective_size * 2.0),
+                    size: Pixels(effective_size),
+                    line_height: text::LineHeight::Relative(1.4),
+                    font,
+                    align_x: text::Alignment::Left,
+                    align_y: alignment::Vertical::Top,
+                    shaping: text::Shaping::Advanced,
+                    wrapping: text::Wrapping::None,
+                });
+            }
             cache.width = cache.paragraph.min_width();
             cache.height = cache.paragraph.min_height();
-            cache.center = if whole {
+            cache.center = if whole || missing {
                 cache.width / 2.0
             } else {
-                focal_center(cache.width, &cache.paragraph.span_bounds(1))
+                focal_center(cache.width, &focus_bounds)
             };
         }
         layout::Node::new(limits.resolve(Length::Fill, Length::Fill, Size::new(400.0, 260.0)))
@@ -149,23 +217,20 @@ impl Widget<Message, Theme, Renderer> for Reader<'_> {
         } else {
             self.config.vertical
         };
-        let center = if self.centered {
-            cache.width / 2.0
-        } else {
-            cache.center
-        };
+        let center = word_center(self.mode, cache.width, cache.center);
         let anchor = Point::new(
             bounds.x + bounds.width * focal_x,
             bounds.y + bounds.height * focal_y,
         );
-        let guide = (self.config.guide && self.config.focal_enabled).then(|| {
-            GuideMetrics::new(
-                self.config.guide_shape,
-                cache.size,
-                self.config.guide_size_percent,
-                self.config.guide_gap_percent,
-            )
-        });
+        let guide = (self.config.guide && self.config.focal_enabled && self.mode != Mode::Export)
+            .then(|| {
+                GuideMetrics::new(
+                    self.config.guide_shape,
+                    cache.size,
+                    self.config.guide_size_percent,
+                    self.config.guide_gap_percent,
+                )
+            });
         let (left, right, height) = if let Some(guide) = guide {
             (
                 center.max(center - cache.center + guide.width / 2.0),
@@ -228,8 +293,10 @@ impl Widget<Message, Theme, Renderer> for Reader<'_> {
                 }
             }
         });
-        if self.config.diagnostics {
-            self.submission.store(
+        if self.config.diagnostics
+            && let Some(submission) = &self.submission
+        {
+            submission.store(
                 self.epoch.elapsed().as_nanos().min(u128::from(u64::MAX)) as u64,
                 Ordering::Relaxed,
             );
@@ -273,6 +340,14 @@ impl Widget<Message, Theme, Renderer> for Reader<'_> {
         }
     }
 }
+fn word_center(mode: Mode, width: f32, focal: f32) -> f32 {
+    if mode == Mode::Export {
+        width / 2.0
+    } else {
+        focal
+    }
+}
+
 /// A ligature can assign its shared glyph to another span, leaving the ORP
 /// span empty. Match the documented whole-word fallback instead of assuming
 /// every logical grapheme owns a separate glyph rectangle.
@@ -450,6 +525,17 @@ mod tests {
                     }
                 }
             }
+        }
+    }
+    #[test]
+    fn revision_focus_anchor_is_fixed_for_narrow_and_long_words() {
+        for (width, focus) in [(20.0, 10.0), (240.0, 70.0), (1400.0, 500.0)] {
+            let anchor = 400.0;
+            let center = word_center(Mode::Reading, width, focus);
+            let scale = fit_scale(800.0, 400.0, 0.5, 0.5, center, width, 100.0);
+            let origin = anchor - center * scale;
+            assert!((origin + focus * scale - anchor).abs() < 0.001);
+            assert_eq!(word_center(Mode::Export, width, focus), width / 2.0);
         }
     }
 }

@@ -15,3 +15,5 @@ The latest update preserves the edited GUI, implements ClearText in the editor, 
 VRX's original code is released under the Unlicense. Dependency and font licenses remain unchanged.
 
 Corrected the Ubuntu-reported shaping-test assumption for a character inside an ffi ligature. Complete-cluster geometry and the existing missing-span fallback are both checked. The single affected test passed on the development Mac; Ubuntu execution remains to be confirmed.
+
+UI revision, still v0.0.1: fixed focus anchoring; configurable padded countdowns and digit alphabets; Axa Mono naming; export preview/background popup; confirmed defaults/discard with warning color; color swatches; About via version hover/click and native macOS menu; single-word Cmd/Ctrl arrows; side-letter opacity; 40-percent and left-middle ORP selection; a miniature reading preview; em-dash token breaks; and an HTML README. Additional fixes cover empty/finished countdowns, stale export dialogs, unsaved preference persistence and faded ligature fallback. Export and shaping reuse invariant computations. See docs/RELEASE.md for the precise verification boundary.

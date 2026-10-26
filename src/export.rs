@@ -76,16 +76,20 @@ pub fn write_timeline(
     timing.sanitize();
     let mut clock = RationalClock::default();
     let mut elapsed = Duration::ZERO;
+    // Color conversion is invariant across the entire streamed timeline.
+    let (_, foreground, accent) = colors(config);
+    let foreground_ass = ass_color(&foreground);
+    let accent_ass = ass_color(&accent);
+    let side_alpha = 255u32.saturating_sub(config.side_opacity_percent.min(100) * 255 / 100);
     if format != Format::Srt {
         let canvas = background(config)?;
-        let (_, foreground, accent) = colors(config);
         let family = match config.font {
             crate::config::FontFamily::Sans | crate::config::FontFamily::Arial => "Arial",
             crate::config::FontFamily::Serif => "Times New Roman",
             crate::config::FontFamily::Mono => "Courier New",
             crate::config::FontFamily::Georgia => "Georgia",
         };
-        writeln!(out, "[Script Info]\nTitle: VRX {}\nScriptType: v4.00+\nPlayResX: 1920\nPlayResY: 1080\nWrapStyle: 2\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,{family},{},&H00{},&H00{},&H00000000,&H00000000,{},0,0,0,100,100,0,0,1,0,0,5,60,60,60,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text", crate::VERSION, config.font_size * 2.0, ass_color(&foreground), ass_color(&accent), if config.bold { -1 } else { 0 }).map_err(|e| e.to_string())?;
+        writeln!(out, "[Script Info]\nTitle: VRX {}\nScriptType: v4.00+\nPlayResX: 1920\nPlayResY: 1080\nWrapStyle: 2\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,{family},{},&H00{},&H00{},&H00000000,&H00000000,{},0,0,0,100,100,0,0,1,0,0,5,60,60,60,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text", crate::VERSION, config.font_size * 2.0, foreground_ass, accent_ass, if config.bold { -1 } else { 0 }).map_err(|e| e.to_string())?;
         // A full-frame vector rectangle keeps ASS opaque in video editors too.
         // Word events remain on layer 0, above this independent canvas.
         writeln!(out,
@@ -114,18 +118,17 @@ pub fn write_timeline(
             // ASS/libass applies its own shaping. Full-word centering preserves
             // complex scripts; desktop per-grapheme anchoring is intentionally
             // not claimed for the interoperable subtitle representation.
-            let (_, foreground, accent) = colors(config);
             let start = token.orp_start.saturating_sub(token.start);
             let finish = token.orp_end.saturating_sub(token.start);
             let escaped = if token.whole_word_focus || !config.focal_enabled {
                 ass_escape(word)
             } else {
                 format!(
-                    "{}{{\\c&H{}&}}{}{{\\c&H{}&}}{}",
+                    "{{\\alpha&H{side_alpha:02X}&}}{}{{\\alpha&H00&\\c&H{}&}}{}{{\\alpha&H{side_alpha:02X}&\\c&H{}&}}{}",
                     ass_escape(word.get(..start).unwrap_or("")),
-                    ass_color(&accent),
+                    accent_ass,
                     ass_escape(word.get(start..finish).unwrap_or("")),
-                    ass_color(&foreground),
+                    foreground_ass,
                     ass_escape(word.get(finish..).unwrap_or(""))
                 )
             };

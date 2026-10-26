@@ -78,6 +78,28 @@ impl Playback {
     pub fn timing(&self) -> &Timing {
         &self.timing
     }
+    /// Remaining throughput estimate, including the unconsumed part of the
+    /// current interval; finished/empty documents have no remaining time.
+    pub fn estimated_remaining(&self, now: Duration) -> Duration {
+        if matches!(self.state, State::Empty | State::Finished | State::Error) {
+            return Duration::ZERO;
+        }
+        let total = self.timing.remaining(&self.document, self.index);
+        let current = self
+            .document
+            .token(self.index)
+            .map(|token| self.timing.duration(token))
+            .unwrap_or_default();
+        let interval = match self.state {
+            State::Playing => self
+                .deadline
+                .map(|deadline| deadline.saturating_sub(now))
+                .unwrap_or(current),
+            State::Paused if !self.remaining.is_zero() => self.remaining,
+            _ => current,
+        };
+        total.saturating_sub(current).saturating_add(interval)
+    }
     pub fn ticket(&self) -> Option<Ticket> {
         self.deadline.map(|deadline| Ticket {
             generation: self.generation,

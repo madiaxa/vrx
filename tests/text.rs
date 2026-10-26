@@ -35,8 +35,8 @@ fn orp_default_mapping_and_alternatives() {
         (9, 2),
         (10, 3),
         (13, 3),
-        (14, 4),
-        (20, 5),
+        (14, 5),
+        (20, 7),
     ] {
         assert_eq!(Strategy::Classic.index(n), expected);
     }
@@ -158,5 +158,20 @@ fn whitespace_combining_cluster_is_never_split() -> Result<()> {
     assert_eq!(d.word(0), Some("one"));
     assert_eq!(d.word(1), Some("two"));
     assert_eq!(d.token(1).map(|t| t.boundary), Some(Boundary::Paragraph));
+    Ok(())
+}
+
+#[test]
+fn revision_center_forty_percent_and_em_dash() -> Result<()> {
+    for (length, index) in [(1, 0), (2, 0), (3, 1), (4, 1), (5, 2), (6, 2)] {
+        assert_eq!(Strategy::Center.index(length), index);
+    }
+    assert_eq!(Strategy::FortyPercent.index(10), 3);
+    let legacy: Strategy = serde_json::from_str("\"thirty_percent\"").map_err(|e| e.to_string())?;
+    assert_eq!(legacy, Strategy::FortyPercent);
+    let d = Document::parse("true/false—maybe—yes".into(), &Strategy::Classic)?;
+    let words: Vec<_> = (0..d.len()).filter_map(|i| d.word(i)).collect();
+    assert_eq!(words, ["true/", "false—", "maybe—", "yes"]);
+    assert_eq!(d.token(1).map(|t| t.punctuation & 16), Some(16));
     Ok(())
 }

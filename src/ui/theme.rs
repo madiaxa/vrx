@@ -1,6 +1,9 @@
 use iced::{Color, Font, Theme, font, theme::Palette};
 use vrx::config::{Appearance, Config, FontFamily};
 pub fn hex(value: &str) -> Color {
+    if !vrx::config::valid_rgb(value) {
+        return Color::WHITE;
+    }
     u32::from_str_radix(value, 16)
         .map(|n| Color::from_rgb8((n >> 16) as u8, (n >> 8) as u8, n as u8))
         .unwrap_or(Color::WHITE)
@@ -32,8 +35,8 @@ pub fn theme(config: &Config) -> Theme {
             text,
             primary,
             success: hex("6FCEAC"),
-            warning: hex("F2CB75"),
-            danger: hex("F48383"),
+            warning: hex(&config.warning),
+            danger: hex(&config.warning),
         },
     )
 }
@@ -52,5 +55,30 @@ pub fn font(config: &Config) -> Font {
             font::Weight::Normal
         },
         ..Font::DEFAULT
+    }
+}
+
+pub fn warning_button(
+    config: &Config,
+    status: iced::widget::button::Status,
+) -> iced::widget::button::Style {
+    let color = hex(&config.warning);
+    let brightness = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+    iced::widget::button::Style {
+        background: Some(
+            color
+                .scale_alpha(if status == iced::widget::button::Status::Hovered {
+                    0.8
+                } else {
+                    1.0
+                })
+                .into(),
+        ),
+        text_color: if brightness > 0.5 {
+            Color::BLACK
+        } else {
+            Color::WHITE
+        },
+        ..Default::default()
     }
 }
