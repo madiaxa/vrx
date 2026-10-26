@@ -5,9 +5,7 @@
   <img alt="Status: early alpha" src="https://img.shields.io/badge/status-early%20alpha-d69e2e?style=flat-square">
   <img alt="Release status:" src="https://github.com/madiaxa/vrx/actions/workflows/release.yml/badge.svg">
 </p>
-<p><strong>Working version: 0.1.0.</strong> Release numbers use standard decimal semantic versioning.</p>
-<p>A native Rust and Iced 0.14 RSVP reader for text and Markdown. Words use a shaped focal anchor, monotonic deadlines, and an event-driven interface. There is no embedded browser, document telemetry, or recurring idle playback timer. The supplied artwork is the application icon.</p>
-
+<p>A native Rust and Iced RSVP reader for text and Markdown. Words use a shaped focal anchor, monotonic deadlines, and an event-driven interface. There is no embedded browser, document telemetry, or recurring idle playback timer.</p>
 <h2>Get started</h2>
 <p>See <a href="https://github.com/madiaxa/vrx/releases">GitHub Releases</a> for available published downloads; use only the source or platform assets actually attached to a release. For more information on platform dependencies, packaging, and GitHub release workflows, see <a href="docs/RELEASE.md">the release guide</a>.</p>
 <p>Install stable Rust 1.99 or newer, a native compiler/linker, and the platform dependencies listed in the release guide. Then clone the repository and build with Cargo:</p>
@@ -18,9 +16,6 @@ cargo build --release --locked
 </code></pre>
 <p>Once you have installed VRX, choose <strong>Open</strong>, drop a UTF-8 text/Markdown file onto the window, or use the <strong>pencil</strong> to edit the current reading text. The sample is already filled in. <strong>Paste</strong> inserts at the editor's selection; <strong>Clear text</strong> clears the draft. <strong>Apply changes</strong> starts changed text at the beginning. Cancel preserves the reading document and position. Original input files are never overwritten.</p>
 <p>Press <strong>Space</strong> to read. In focus mode, the highlighted grapheme stays at the screen's center. With the focal point disabled, the whole word is centered instead. Long words and guides shrink together to fit the available area.</p>
-
-<p>macOS has been built and launched locally, and FreeBSD has passed cross-target compilation. Native Linux, Windows and FreeBSD desktop operation is not certified by the local measurements. The platform badge lists intended native targets; the workflow badge reflects the remote workflow, not a guarantee of published assets.</p>
-
 <h2>Controls</h2>
 <table>
 <thead><tr><th>Default shortcut</th><th>Action</th></tr></thead>
