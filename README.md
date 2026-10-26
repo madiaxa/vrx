@@ -69,7 +69,7 @@ cargo build --release --locked
 </ul>
 <p>Exports cover the whole document with the selected timing and whole-word positioning. They do not reproduce desktop guide marks or measured per-grapheme anchoring. ASS timestamps have centisecond resolution; MP4 is frame-quantized. Fonts can differ in video editors.</p>
 
-<h2>CLI and agent API</h2>
+<h2>CLI / API</h2>
 <pre><code>vrx --help
 vrx inspect book.md
 vrx export book.md reading.mp4 400 00FF00
@@ -83,4 +83,4 @@ vrx api book.md</code></pre>
 
 <h2>Contribute and license</h2>
 <p>Read <a href="docs/CONTRIBUTING.md">Contributing</a>, <a href="docs/ARCHITECTURE.md">Architecture</a>, <a href="docs/RELEASE.md">Build and release</a>, and <a href="docs/LIMITATIONS.md">Limitations</a>. Rust application code forbids unsafe and explicit panic/unwrap/expect paths; allocator, OS, driver and dependency failures cannot be guaranteed away.</p>
-<p>VRX's original code uses <a href="LICENSE">the Unlicense</a>. Dependencies retain their own licenses; Axa Mono uses <a href="assets/OFL.txt">the SIL Open Font License</a>. Release tags use <code>vMAJOR.MINOR.PATCH</code> with decimal components. Cargo is the source of the displayed application version; the current working version is <strong>0.1.0</strong>. GUI radix preferences do not affect release numbering.</p>
+<p>VRX's original code uses <a href="LICENSE">the Unlicense</a>. Dependencies retain their own licenses; Axa Mono uses <a href="assets/OFL.txt">the SIL Open Font License</a>. Release tags use <code>vMAJOR.MINOR.PATCH</code>. Cargo is the source of the displayed application version; the current working version is <strong>v0.1.0</strong>.</p>
