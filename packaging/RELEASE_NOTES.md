@@ -11,3 +11,5 @@ Platform CI/build success and manual desktop verification are different. Review 
 Final changes retain v0.0.1: slash-preserving token splits, a simplified keymap, a green-by-default independent export canvas, toolbar text editing with in-editor Paste, and direct radix input. Contributor guidance is consolidated in docs/CONTRIBUTING.md; platform/GitHub build instructions are consolidated in docs/RELEASE.md. These final changes were compiled without running tests at the requester's direction.
 
 The latest update preserves the edited GUI, implements ClearText in the editor, makes fractional sliders step in the selected radix, and shortens number formatting without losing stored precision. Focal guides now support shape/color/size/gap customization and scale with RSVP type and word fitting. Three focused regression tests passed; no full-suite or native smoke run was performed for this update.
+
+VRX's original code is released under the Unlicense. Dependency and font licenses remain unchanged.

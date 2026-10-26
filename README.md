@@ -84,4 +84,4 @@ See the [contributor guide](docs/CONTRIBUTING.md), [architecture](docs/ARCHITECT
 
 Release labels use dozenal digits `0123456789↊↋` in `v0.y.z`. This release is **v0.0.1**. Cargo uses numeric SemVer `0.0.1` because Cargo does not accept the turned Unicode digits. `version::label` converts future release components to the human format.
 
-MIT licensed. Dependency licenses remain with their authors.
+VRX is released under the [Unlicense](LICENSE), dedicating its original code to the public domain. Third-party dependencies and bundled fonts retain their own licenses and notices.
