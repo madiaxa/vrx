@@ -13,3 +13,5 @@ Final changes retain v0.0.1: slash-preserving token splits, a simplified keymap,
 The latest update preserves the edited GUI, implements ClearText in the editor, makes fractional sliders step in the selected radix, and shortens number formatting without losing stored precision. Focal guides now support shape/color/size/gap customization and scale with RSVP type and word fitting. Three focused regression tests passed; no full-suite or native smoke run was performed for this update.
 
 VRX's original code is released under the Unlicense. Dependency and font licenses remain unchanged.
+
+Corrected the Ubuntu-reported shaping-test assumption for a character inside an ffi ligature. Complete-cluster geometry and the existing missing-span fallback are both checked. The single affected test passed on the development Mac; Ubuntu execution remains to be confirmed.

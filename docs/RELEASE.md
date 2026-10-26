@@ -205,3 +205,7 @@ sh -n packaging/freebsd-ci.sh
 ```
 
 Actions are referenced by maintained release tags. A repository with stricter supply-chain requirements can pin reviewed commit SHAs and enable dependency updates; keep those pins current. No signing secret, GitHub credential or private document is included in this project.
+
+## Ubuntu shaping regression
+
+The reported `office has no focus geometry` assertion assumed a separate span rectangle for a single f inside the ffi ligature. Font/shaper combinations may legitimately assign that glyph to a different span. The test now requires geometry for the complete cluster and validates the reader's existing whole-word fallback when an individual span is absent. Only this shaping test was rerun for the fix, passing on the development Mac; an Ubuntu rerun has not been performed locally. No font, dependency or reading behavior was changed.

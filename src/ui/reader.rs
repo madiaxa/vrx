@@ -117,12 +117,7 @@ impl Widget<Message, Theme, Renderer> for Reader<'_> {
             cache.center = if whole {
                 cache.width / 2.0
             } else {
-                cache
-                    .paragraph
-                    .span_bounds(1)
-                    .first()
-                    .map(|r| r.x + r.width / 2.0)
-                    .unwrap_or(cache.width / 2.0)
+                focal_center(cache.width, &cache.paragraph.span_bounds(1))
             };
         }
         layout::Node::new(limits.resolve(Length::Fill, Length::Fill, Size::new(400.0, 260.0)))
@@ -278,6 +273,16 @@ impl Widget<Message, Theme, Renderer> for Reader<'_> {
         }
     }
 }
+/// A ligature can assign its shared glyph to another span, leaving the ORP
+/// span empty. Match the documented whole-word fallback instead of assuming
+/// every logical grapheme owns a separate glyph rectangle.
+fn focal_center(word_width: f32, focus_bounds: &[Rectangle]) -> f32 {
+    focus_bounds
+        .first()
+        .map(|bounds| bounds.x + bounds.width / 2.0)
+        .unwrap_or(word_width / 2.0)
+}
+
 /// All dimensions are relative to the effective reading font, before the
 /// shared word-fitting transform. GUI scaling therefore cannot enlarge guides
 /// independently of the word.
@@ -382,13 +387,33 @@ mod tests {
         let narrow = shape("iii", 1, 2, 70.0);
         let wide = shape("WWW", 1, 2, 70.0);
         assert!(wide.min_width() > narrow.min_width() * 1.5);
-        for (word, start, end) in [("office", 2, 3), ("e\u{301}clair", 0, 3), ("‘wide,’", 3, 4)]
+        // These spans own complete glyph clusters, including the whole ffi
+        // ligature. Their geometry must exist on each supported platform.
+        for (word, start, end) in [("office", 1, 4), ("e\u{301}clair", 0, 3), ("‘wide,’", 3, 4)]
         {
             let shaped = shape(word, start, end, 70.0);
             let focus = shaped.span_bounds(1);
             assert!(!focus.is_empty(), "{word} has no focus geometry");
             assert!(focus.iter().all(|r| r.width.is_finite() && r.width > 0.0));
         }
+        // A single f inside ffi may have bounds on macOS but no bounds with
+        // Ubuntu's font/shaper. Both are valid: exercise the actual reader
+        // fallback rather than requiring a platform-specific glyph layout.
+        let ligature = shape("office", 2, 3, 70.0);
+        let focus = ligature.span_bounds(1);
+        let center = focal_center(ligature.min_width(), &focus);
+        assert!(center.is_finite() && center >= 0.0 && center <= ligature.min_width());
+        if focus.is_empty() {
+            assert_eq!(center, ligature.min_width() / 2.0);
+        } else {
+            assert!(focus.iter().all(|r| r.width.is_finite() && r.width > 0.0));
+            assert_eq!(center, focus[0].x + focus[0].width / 2.0);
+        }
+        // Cover the missing-span path even when the local font exposes ffi.
+        assert_eq!(
+            focal_center(ligature.min_width(), &[]),
+            ligature.min_width() / 2.0
+        );
         let normal = shape("wide", 1, 2, 40.0);
         let large = shape("wide", 1, 2, 80.0);
         assert!((large.min_width() / normal.min_width() - 2.0).abs() < 0.1);
