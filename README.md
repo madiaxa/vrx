@@ -1,10 +1,21 @@
-<h1 align="center">VRX <small>v0.0.1</small></h1>
-<p align="center"><strong>Visual Reader X — Read Rapidly</strong></p>
-<p>A native Rust and Iced 0.14 RSVP reader for text and Markdown. Words use a shaped focal anchor, monotonic deadlines, and an event-driven interface. There is no embedded browser, document telemetry, or recurring idle playback timer. The supplied artwork is the application icon.</p>
+<h1 align="center">VRX</h1>
+<p align="center"><strong>Read Rapidly</strong></p>
+<p align="center">
+  <img alt="macOS · Windows · Linux · FreeBSD" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux%20%C2%B7%20FreeBSD-native-2f7bf5?style=flat-square">
+  <img alt="Status: early alpha" src="https://img.shields.io/badge/status-early%20alpha-d69e2e?style=flat-square">
+  <img alt="Release status:" src="https://github.com/madiaxa/vrx/actions/workflows/release.yml/badge.svg">
+</p>
+<p>A native Rust and Iced RSVP reader for text and Markdown. Words use a shaped focal anchor, monotonic deadlines, and an event-driven interface. There is no embedded browser, document telemetry, or recurring idle playback timer. The supplied artwork is the application icon.</p>
 
 <h2>Get started</h2>
-<p>Extract the macOS archive in a local folder, move <code>VRX.app</code> to Applications, and open it. The macOS app uses local ad-hoc signing, not public notarization. For source builds, platform dependencies, FreeBSD, packaging, and GitHub release workflows, see <a href="docs/RELEASE.md">the release guide</a>.</p>
-<p>Choose <strong>Open</strong>, drop a UTF-8 text/Markdown file onto the window, or use the <strong>pencil</strong> to edit the current reading text. The sample is already filled in. <strong>Paste</strong> inserts at the editor's selection; <strong>Clear text</strong> clears the draft. <strong>Apply changes</strong> starts changed text at the beginning. Cancel preserves the reading document and position. Original input files are never overwritten.</p>
+<p>Source builds are attached in each <a href="https://github.com/madiaxa/vrx/releases">GitHub release</a>. For more information on platform dependencies, packaging, and GitHub release workflows, see <a href="docs/RELEASE.md">the release guide</a>.</p>
+<p>To build from scratch, clone the repo and build using cargo:</p>
+<pre><code>git clone https://github.com/madiaxa/vrx
+cd vrx
+cargo build --release --locked 
+# refer to RELEASE.md to set a target architecture
+</code></pre>
+<p>Once you have installed VRX, choose <strong>Open</strong>, drop a UTF-8 text/Markdown file onto the window, or use the <strong>pencil</strong> to edit the current reading text. The sample is already filled in. <strong>Paste</strong> inserts at the editor's selection; <strong>Clear text</strong> clears the draft. <strong>Apply changes</strong> starts changed text at the beginning. Cancel preserves the reading document and position. Original input files are never overwritten.</p>
 <p>Press <strong>Space</strong> to read. In focus mode, the highlighted grapheme stays at the screen's center. With the focal point disabled, the whole word is centered instead. Long words and guides shrink together to fit the available area.</p>
 
 <h2>Controls</h2>
