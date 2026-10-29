@@ -83,4 +83,4 @@ vrx api book.md</code></pre>
 
 <h2>Contribute and license</h2>
 <p>Read <a href="docs/CONTRIBUTING.md">Contributing</a>, <a href="docs/ARCHITECTURE.md">Architecture</a>, <a href="docs/RELEASE.md">Build and release</a>, and <a href="docs/LIMITATIONS.md">Limitations</a>. Rust application code forbids unsafe and explicit panic/unwrap/expect paths; allocator, OS, driver and dependency failures cannot be guaranteed away.</p>
-<p>VRX's original code uses <a href="LICENSE">the Unlicense</a>. Dependencies retain their own licenses; Axa Mono uses <a href="assets/OFL.txt">the SIL Open Font License</a>. Release tags use <code>vMAJOR.MINOR.PATCH</code>. Cargo is the source of the displayed application version; the current working version is <strong>v0.1.0</strong>.</p>
+<p>VRX's original code uses <a href="LICENSE">the Unlicense</a>. Dependencies retain their own licenses; Axa Mono uses <a href="assets/OFL.txt">the SIL Open Font License</a>.</p>
