@@ -44,10 +44,7 @@ cargo build --release --locked
 <li>Drag the focal anchor. Choose Classic, 40 percent, Center, or First grapheme. Center uses the left middle grapheme for even-length words; Classic uses 40 percent for its long-word branch.</li>
 <li>Customize focal color, guide shape, size and gap. Side-letter opacity is adjustable when focal highlighting is on, with full opacity retained for whole-word shaping fallbacks.</li>
 <li>Choose dark, light, high-contrast or custom colors. Every color input has a swatch. The warning color identifies destructive confirmation buttons. Dropdown headers and panels follow the active theme accent; set <strong>Dropdown color</strong> to override their tint in any theme, or leave it empty to follow the accent.</li>
-<li>Use <strong>Discard changes</strong> to restore the snapshot from when the menu opened, or <strong>Restore all defaults</strong> to preview default preferences. Both require confirmation. Done validates and saves; reading text and recent documents are kept.</li>
-</ul>
-
-<p>Personalize is 25% wider in windowed mode: its sidebar is 525 logical pixels and its dedicated view has a maximum width of 650. Fullscreen retains the original 420/520 widths. Narrow windows still fit the available space.</p>
+<li>Use <strong>Discard changes</strong> to restore the snapshot from when the menu opened, or <strong>Restore all defaults</strong> to preview default preferences, or use <strong>Done</strong> to submit your changes.</li>
 
 <h3>Numbers and countdown</h3>
 <p>Expand <strong>Personalize → Radix notation</strong>, which is collapsed by default, to choose a decimal radix from 2 through 60. The default digit alphabet is <code>0123456789↊↋ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuv</code>. Change the symbols in that same dropdown section and apply them; symbols must be unique and cannot use reserved punctuation. Balanced ternary has a separate three-symbol alphabet in negative-one, zero, positive-one order, initially <code>T01</code>.</p>
