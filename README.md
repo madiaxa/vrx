@@ -78,6 +78,11 @@ vrx api book.md</code></pre>
 <p>Versioned settings store preferences and up to 16 recent paths, fingerprints and token positions in the platform configuration directory. Document content and editor drafts are never stored there. Export edited text before closing to retain a timed-text copy. Progress is saved through the Play/Pause controls, document replacement, about every 30 seconds during playback, and normal close. Forced termination can lose changes since the last save. Reopening a file resumes only when its fingerprint matches. <code>VRX_CONFIG_DIR</code> selects another configuration directory.</p>
 <p>Preferences have live previews, but background saves retain the opening settings snapshot until Done commits it. Saves run off the presentation path and use atomic replacement where supported. Missing/corrupt configuration recovers to defaults with a notice. The editor opening limit is 16 MiB; document import is capped at 512 MiB.</p>
 
+<h2>Methodology</h2>
+<p>This section contains any interesting tidbits about the way the VRX was made and provides the rationale behind its design. This part is unnecessary to read (but hopefully somewhat entertaining).</p>
+<p>[INSERT COOL PARAGRAPH HERE]</p>
+<p>Likely to your disappointment, this project was created in large part with the use of AI models, given my specifications (the text above me gives it away). Technical changes, bugfixes, GUI changes, text displayed inside the program (like the demo text), and other fixes were all made by me personally (madiaxa). Future development on this project and others in the AxaSuite continuum will make minimal use of AI, outside of occasionally checking the repository for issues or missed optimizations.</p>
+
 <h2>Contribute and license</h2>
 <p>Read <a href="docs/CONTRIBUTING.md">Contributing</a>, <a href="docs/ARCHITECTURE.md">Architecture</a>, <a href="docs/RELEASE.md">Build and release</a>, and <a href="docs/LIMITATIONS.md">Limitations</a>. Rust application code forbids unsafe and explicit panic/unwrap/expect paths; allocator, OS, driver and dependency failures cannot be guaranteed away.</p>
 <p>VRX's original code uses <a href="LICENSE">the Unlicense</a>. Dependencies retain their own licenses; Axa Mono uses <a href="assets/OFL.txt">the SIL Open Font License</a>.</p>
