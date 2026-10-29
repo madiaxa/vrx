@@ -5,7 +5,7 @@
   <img alt="Status: early alpha" src="https://img.shields.io/badge/status-early%20alpha-d69e2e?style=flat-square">
   <img alt="Release status:" src="https://github.com/madiaxa/vrx/actions/workflows/release.yml/badge.svg">
 </p>
-<p>A native Rust and Iced RSVP reader for text and Markdown. Words use a shaped focal anchor, monotonic deadlines, and an event-driven interface. There is no embedded browser, document telemetry, or recurring idle playback timer.</p>
+<p>Finally, a desktop native RSVP reader written in Rust! Read text, Markdown, and other formats with ease. Words use a shaped focal anchor and monotonic deadlines. Enjoy a smooth, event-driven interface and CLI support.</p>
 <h2>Get started</h2>
 <p>See <a href="https://github.com/madiaxa/vrx/releases">GitHub Releases</a> for available published downloads; use only the source or platform assets actually attached to a release. For more information on platform dependencies, packaging, and GitHub release workflows, see <a href="docs/RELEASE.md">the release guide</a>.</p>
 <p>Install stable Rust 1.99 or newer, a native compiler/linker, and the platform dependencies listed in the release guide. Then clone the repository and build with Cargo:</p>
@@ -49,7 +49,7 @@ cargo build --release --locked
 <h3>Numbers and countdown</h3>
 <p>Expand <strong>Personalize → Radix notation</strong>, which is collapsed by default, to choose a decimal radix from 2 through 60. The default digit alphabet is <code>0123456789↊↋ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuv</code>. Change the symbols in that same dropdown section and apply them; symbols must be unique and cannot use reserved punctuation. Balanced ternary has a separate three-symbol alphabet in negative-one, zero, positive-one order, initially <code>T01</code>.</p>
 <p>Fractional sliders advance in one fractional digit of the chosen base, rounded to the nearest stored thousandth. Typed pause weights keep thousandth precision. Changing notation alone does not change the actual speed or duration. JSON/CLI values, RGB hex, filenames, versions and subtitle timestamps retain their established notation. Axa Mono, bundled under the SIL Open Font License, displays numeric controls.</p>
-<p>The countdown rounds up to whole seconds. By default it shows <code>6s remaining</code> under a minute and <code>5:04 remaining</code> for a minute or more. Choose clock, short labels, words, or no labels, or edit separate short/long templates. Available placeholders are <code>{minutes}</code>, <code>{seconds}</code>, <code>{seconds:02}</code>, and <code>{total_seconds}</code>. Padding uses the selected zero symbol. Completed documents show zero remaining.</p>
+<p>The countdown rounds up to whole seconds. By default, it shows <code>_s remaining</code> under a minute and <code>__:__ remaining</code> for a minute or more (where _ represents some digit). Choose clock, short labels, words, or no labels, or edit separate short/long templates. Available placeholders are <code>{minutes}</code>, <code>{seconds}</code>, <code>{seconds:02}</code>, and <code>{total_seconds}</code>. Padding uses the selected zero symbol. Completed documents show zero remaining.</p>
 
 <h2>Timing and text</h2>
 <p>Constant mode uses 60/WPM seconds per token. Adaptive mode uses the largest applicable multiplier, without multiplying pauses together. Independent pauses cover long words, commas, colons, semicolons, quotes, brackets, dashes, sentences and paragraphs, with an optional extra section pause.</p>
@@ -80,8 +80,8 @@ vrx api book.md</code></pre>
 
 <h2>Methodology</h2>
 <p>This section contains any interesting tidbits about the way the VRX was made and provides the rationale behind its design. This part is unnecessary to read (but hopefully somewhat entertaining).</p>
-<p>[INSERT COOL PARAGRAPH HERE]</p>
-<p>Likely to your disappointment, this project was created in large part with the use of AI models, given my specifications (the text above me gives it away). Technical changes, bugfixes, GUI changes, text displayed inside the program (like the demo text), and other fixes were all made by me personally (madiaxa). Future development on this project and others in the AxaSuite continuum will make minimal use of AI, outside of occasionally checking the repository for issues or missed optimizations.</p>
+<p>[INSERT COOL PARAGRAPH HERE, EVENTUALLY]</p>
+<p>Likely to your disappointment, this project was created in large part with the use of AI models, given my personal specifications. I am working to revise the README and any other documentation to be more clear and concise. Technical changes, bugfixes, GUI changes, text displayed inside the program (like the demo text), and other fixes were all made by me personally (madiaxa). Future development on this project and others in the AxaSuite continuum will make minimal use of AI, outside of occasionally checking the repository for issues or missed optimizations.</p>
 
 <h2>Contribute and license</h2>
 <p>Read <a href="docs/CONTRIBUTING.md">Contributing</a>, <a href="docs/ARCHITECTURE.md">Architecture</a>, <a href="docs/RELEASE.md">Build and release</a>, and <a href="docs/LIMITATIONS.md">Limitations</a>. Rust application code forbids unsafe and explicit panic/unwrap/expect paths; allocator, OS, driver and dependency failures cannot be guaranteed away.</p>
